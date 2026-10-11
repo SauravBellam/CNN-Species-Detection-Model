@@ -466,3 +466,26 @@ Classifier checkpoints contain:
 - Training options such as `dropout` and `secondary_label_total_weight`.
 
 Use checkpoints created by `src.train` or `src.pipeline train`; older checkpoints without `class_list` and `model_state_dict` will not load in `inference.py`.
+
+## Distilled SED (`distilled_sed/`) and ablations
+
+`distilled_sed/model1_sed.py` is the "Model_1" distilled SED from nina2025's Kaggle notebook
+[BirdCLEF 2026 EoS.9](https://www.kaggle.com/code/nina2025/birdclef-2026-eos-9#Model_1). All credit
+for the model idea (GeM frequency pooling, attention SED head, Perch v2 embedding distillation with
+stop-gradient) goes to the original authors. Our changes: the EfficientNet-B0 backbone is replaced by
+our ResNet-18 with its avgpool/fc removed (`distilled_sed/models.py`, also used by `model.py`), and the
+LR schedule is removed. The goal is a cheap model that can run 24/7 on site.
+
+```bash
+# train every ablation variant (5-fold CV each)
+COMP_DIR=... WAVEFORM_CACHE_DIR=... PERCH_ONNX_PATH=... \
+  python -m distilled_sed.ablations.run_ablation --out runs/ablations
+# score them on many metrics and check hypotheses (writes CSV + hypotheses.md)
+python -m distilled_sed.ablations.evaluate --runs runs/ablations --taxonomy $COMP_DIR/taxonomy.csv
+# inference cost (params, MB, CPU ms per 5 s window)
+python -m distilled_sed.ablations.benchmark_cost --threads 1
+```
+
+The metrics are macro ROC-AUC, PR-AUC, LRAP, macro F1@0.5, ECE, Brier, temporal jitter, AUC for rare
+(<20 clips) and common (≥100 clips) species, and per-taxon AUC. Each hypothesis is listed in
+`distilled_sed/ablations/configs.py`.
