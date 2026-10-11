@@ -489,3 +489,14 @@ python -m distilled_sed.ablations.benchmark_cost --threads 1
 The metrics are macro ROC-AUC, PR-AUC, LRAP, macro F1@0.5, ECE, Brier, temporal jitter, AUC for rare
 (<20 clips) and common (≥100 clips) species, and per-taxon AUC. Each hypothesis is listed in
 `distilled_sed/ablations/configs.py`.
+
+### Running on one GPU (GCP g2-standard-16, 1x L4)
+
+```bash
+bash distilled_sed/scripts/setup_vm.sh
+export COMP_DIR=... WAVEFORM_CACHE_DIR=... PERCH_ONNX_PATH=...
+PILOT=1 bash distilled_sed/scripts/run_ablations_l4.sh   # quick timing check
+bash distilled_sed/scripts/run_ablations_l4.sh           # full study
+```
+
+This runs 3 variant lanes at the same time on the L4, each with 4 DataLoader workers.

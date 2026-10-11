@@ -153,6 +153,9 @@ USE_FOCAL           = True
 USE_FOCAL_SECONDARY = True
 USE_LABELED_SC      = True
 
+# --- Data loading (notebook used num_workers=0; >0 keeps the GPU fed) ---
+NUM_WORKERS = int(os.environ.get("NUM_WORKERS", 0))
+
 ACTIVE_SOURCES = ["focal", "sc"]
 SHARES = {"focal": 0.9, "sc": 0.1}
 SOURCE_WEIGHTS = {
@@ -355,6 +358,18 @@ def MelSpecTransform():
 
 def SpecAugment():
     return _SpecAug(FREQ_MASK_PARAM, TIME_MASK_PARAM, NUM_FREQ_MASKS, NUM_TIME_MASKS)
+
+def _norm_mel(mel):
+    """Per-sample standardisation, vectorised (notebook looped over the batch)."""
+    mu = mel.mean(dim=(1, 2, 3), keepdim=True)
+    sd = mel.std(dim=(1, 2, 3), keepdim=True)
+    return (mel - mu) / (sd + 1e-6)
+
+def _seed_worker(worker_id):
+    # numpy RNG is not reseeded per DataLoader worker; without this every
+    # worker would draw the same augmentations
+    seed = torch.initial_seed() % 2**32
+    np.random.seed(seed); random.seed(seed)
 
 def make_model(pretrained=True):
     return BirdSEDModel(NUM_CLASSES, pretrained=pretrained, use_distill=USE_PERCH_DISTILL,
@@ -622,9 +637,7 @@ def _predict_from_waveforms(model, mel_transform, wav_list, batch_size=64):
         for s in range(0, len(wav_list), batch_size):
             batch = torch.stack(wav_list[s:s+batch_size]).to(device)
             mel = mel_transform(batch)
-            B = mel.size(0)
-            for i in range(B):
-                mel[i] = (mel[i] - mel[i].mean()) / (mel[i].std() + 1e-6)
+            mel = _norm_mel(mel)
             with autocast():
                 clip_logits, framewise = model(mel, return_framewise=True)
                 frame_max = framewise.max(dim=1).values
@@ -686,7 +699,8 @@ def train_fold(fold_k):
         m.train()
         smp = MixSamp(list(sizes), list(names), SHARES, BATCH, nst, seed=42 + ep)
         tl = DataLoader(mds, batch_sampler=smp, collate_fn=collate_m,
-                        num_workers=0, pin_memory=True)
+                        num_workers=NUM_WORKERS, pin_memory=True,
+                        worker_init_fn=_seed_worker, persistent_workers=False)
         el, el_cls, el_dist, nb_count = 0.0, 0.0, 0.0, 0
         t0 = time.time()
 
@@ -696,9 +710,7 @@ def train_fold(fold_k):
 
             with torch.no_grad():
                 mel = mel_transform(wav)
-                B = mel.size(0)
-                for i in range(B):
-                    mel[i] = (mel[i] - mel[i].mean()) / (mel[i].std() + 1e-6)
+                mel = _norm_mel(mel)
                 mel = spec_augment(mel)
 
             with autocast():

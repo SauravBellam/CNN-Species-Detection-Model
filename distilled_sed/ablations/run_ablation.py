@@ -16,6 +16,8 @@ from pathlib import Path
 
 from .configs import TRAIN_VARIANTS
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -39,9 +41,10 @@ def main():
         if args.folds:
             overrides["FOLDS"] = args.folds
         env = dict(os.environ, MODE="train", DEBUG=str(args.debug),
-                   OUT_DIR=str(out_dir), SED_OVERRIDES=json.dumps(overrides))
+                   OUT_DIR=str(out_dir.resolve()), SED_OVERRIDES=json.dumps(overrides))
         print(f"\n=== {name}: {overrides} ===", flush=True)
-        subprocess.run([sys.executable, "-m", "distilled_sed.model1_sed"], env=env, check=True)
+        subprocess.run([sys.executable, "-m", "distilled_sed.model1_sed"], env=env,
+                       check=True, cwd=REPO_ROOT)
 
 
 if __name__ == "__main__":

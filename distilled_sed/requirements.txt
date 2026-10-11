@@ -1,0 +1,13 @@
+# Install on the VM (CUDA 12.x image), e.g. g2-standard-16 with 1x L4
+torch
+torchaudio
+torchvision
+onnxruntime-gpu  # NOT plain onnxruntime -- otherwise Perch silently runs on CPU
+onnx
+onnxscript
+numpy
+pandas
+scipy
+scikit-learn
+librosa
+soundfile
