@@ -426,6 +426,13 @@ def load_int16(path):
     waveform_int16 = torch.load(path, map_location="cpu")
     return waveform_int16.float() / 32767.0
 
+# Per-process audio caches. The notebook used 2000 focal / 200 soundscape entries with a
+# single loader process; with NUM_WORKERS workers x several lanes every process holds its
+# own copy, so cap them (focal windows are drawn at random from ~35k clips, so a large
+# focal cache barely hits anyway; the ~70 labelled soundscape files do fit).
+FOCAL_CACHE_N = int(os.environ.get("FOCAL_CACHE_N", 2000 if NUM_WORKERS == 0 else 64))
+SC_CACHE_N = int(os.environ.get("SC_CACHE_N", 200 if NUM_WORKERS == 0 else 70))
+
 _FC = {}
 def load_focal(p):
     """Load focal waveform with simple LRU cache."""
@@ -433,7 +440,7 @@ def load_focal(p):
     pp = WAVEFORM_CACHE_DIR / p
     if not pp.exists(): return None
     a = load_int16(pp).numpy()
-    if len(_FC) >= 2000:
+    if len(_FC) >= FOCAL_CACHE_N:
         _FC.pop(next(iter(_FC)))
     _FC[p] = a
     return a
@@ -446,7 +453,7 @@ def load_sc_waveform_from(cache_dir, cache_file):
     pp = cache_dir / cache_file
     if not pp.exists(): return None
     a = load_int16(pp).numpy()
-    if len(_SC_CACHE) >= 200:
+    if len(_SC_CACHE) >= SC_CACHE_N:
         _SC_CACHE.pop(next(iter(_SC_CACHE)))
     _SC_CACHE[key] = a
     return a
