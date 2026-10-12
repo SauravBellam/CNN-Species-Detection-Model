@@ -136,6 +136,7 @@ def cost_vs_quality(bfb, out):
     """Macro AUC against three costs; the line joins the Pareto-optimal variants."""
     costs = [(c, t, log) for c, t, log in [
         ("cpu1_ms", "CPU ms per prediction (1 thread)", True),
+        ("gpu_ms", "GPU ms per prediction", True),
         ("gflops", "GFLOPs per prediction", True),
         ("train_gpu_hours", "Training GPU-hours (est.)", True)] if c in bfb and bfb[c].notna().any()]
     fig, axes = plt.subplots(1, len(costs), figsize=(5.2 * len(costs), 4.4), squeeze=False)

@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Full study on ONE L4 (GCP g2-standard-16: 8 cores / 16 vCPU, 64 GB RAM).
 #
-# Step 1 runs Perch v2 (ONNX on the GPU via onnxruntime-gpu) once over every 5 s window (pseudo-labels + cached
+# Step 1 runs Perch v2 on the GPU only (perch_gpu.py) once over every 5 s window (pseudo-labels + cached
 # embeddings). Step 2 trains the variants in 3 parallel lanes sharing the GPU
 # (Perch is no longer run during training, so each run is light); each lane
 # has 4 DataLoader workers -> 3 x (1 + 4) = 15 of 16 vCPUs. Step 3 scores
-# everything, renders attention heatmaps and measures CPU inference cost.
+# everything, renders attention heatmaps and measures inference cost
+# (the ResNet variants on CPU and GPU; Perch on GPU only).
 #
 # Usage (from repo root):
 #   export COMP_DIR=/data/birdclef-2026
 #   export WAVEFORM_CACHE_DIR=/data/waveform_cache
-#   export PERCH_ONNX_PATH=/data/perch_v2.onnx        # needs "label" + "embedding" outputs
+#   export PERCH_ONNX_PATH=/data/perch_v2.onnx        # Perch v2 .onnx OR GPU SavedModel dir; GPU-only
 #   export PERCH_LABELS=/data/perch_v2_labels.csv     # Perch v2 assets/labels.csv
 #   export PSEUDO_DIR=/data/pseudo
 #   bash distilled_sed/scripts/run_ablations_l4.sh            # full study
@@ -31,7 +32,7 @@ mkdir -p "$OUT/logs"
 if [[ ! -f "$PSEUDO_DIR/sc_targets_fold4.npy" ]]; then
   OMP_NUM_THREADS=8 python -m distilled_sed.pseudo_label \
     --comp-dir "$COMP_DIR" --waveform-cache "$WAVEFORM_CACHE_DIR" \
-    --perch-onnx "$PERCH_ONNX_PATH" --perch-labels "$PERCH_LABELS" --out "$PSEUDO_DIR" \
+    --perch-model "$PERCH_ONNX_PATH" --perch-labels "$PERCH_LABELS" --out "$PSEUDO_DIR" \
     2>&1 | tee "$OUT/logs/pseudo_label.log"
 fi
 
@@ -53,7 +54,7 @@ done
 fail=0; for p in "${pids[@]}"; do wait "$p" || fail=1; done
 
 # ---- 3. cost (machine is idle now, so timings are clean), score, graphs
-python -m distilled_sed.ablations.benchmark_cost --runs "$OUT" --perch-onnx "$PERCH_ONNX_PATH" \
+python -m distilled_sed.ablations.benchmark_cost --runs "$OUT" --perch-model "$PERCH_ONNX_PATH" \
   | tee "$OUT/cost.txt"
 python -m distilled_sed.ablations.evaluate --runs "$OUT" --taxonomy "$COMP_DIR/taxonomy.csv"
 python -m distilled_sed.ablations.plot --runs "$OUT"

@@ -1,6 +1,6 @@
 """Inference compute and time per prediction for every trained variant.
 
-    python -m distilled_sed.ablations.benchmark_cost --runs runs/ablations --perch-onnx perch_v2.onnx
+    python -m distilled_sed.ablations.benchmark_cost --runs runs/ablations --perch-model perch_v2.onnx
 
 Run it AFTER training, when nothing else is using the machine -- timings
 taken while other runs share the CPU/GPU are meaningless. For every run with
@@ -15,7 +15,8 @@ change speed) and measures, per 5 s window ("one prediction"):
   preds_per_sec_cpu1       1000 / cpu1_ms
   realtime_x_cpu1          seconds of audio processed per second of compute
 
-perch_attn_probe is timed as Perch v2 (ONNX) + the probe head. Results go to
+perch_attn_probe is timed as Perch v2 + the probe head on the GPU only (Perch is
+never run on the CPU in this project, so its CPU columns are empty). Results go to
 <runs>/cost.csv, which evaluate.py and plot.py merge with the quality metrics.
 Without --runs it benchmarks a fixed set of reference configs instead.
 """
@@ -79,29 +80,22 @@ def bench_sed(cfg, args):
 
 
 def bench_perch_probe(cfg, args):
-    import onnxruntime as ort
+    """Perch runs only on the GPU, so the probe is timed on the GPU only; its CPU
+    columns are left empty (Perch is never run on the CPU in this project)."""
+    from ..perch_gpu import PerchGPU
     from ..perch_probe import AttnPoolProbe
-    probe = AttnPoolProbe(cfg["dim"], cfg["NUM_CLASSES"]).eval()
+    probe = AttnPoolProbe(cfg["dim"], cfg["NUM_CLASSES"]).eval().cuda()
     n = sum(p.numel() for p in probe.parameters())
-    x = np.random.randn(args.batch, WIN).astype(np.float32)
-    feats = torch.randn(args.batch, cfg["frames"], cfg["dim"])
-    r = {"params_m": n / 1e6, "size_mb": n * 4 / 1e6, "gflops": float("nan"),
-         "note": "params/size are the probe only; Perch v2 runs in front of it"}
-    for threads in (1, 4):
-        so = ort.SessionOptions(); so.intra_op_num_threads = threads
-        sess = ort.InferenceSession(args.perch_onnx, so, providers=["CPUExecutionProvider"])
-        inp = sess.get_inputs()[0].name
-        tp, _ = timed(lambda a: sess.run(None, {inp: a}), x, args.iters)
-        torch.set_num_threads(threads)
-        th, _ = timed(probe, feats, args.iters)
-        r[f"cpu{threads}_feat_ms"] = tp / args.batch * 1000      # Perch plays the "feature" role
-        r[f"cpu{threads}_ms"] = (tp + th) / args.batch * 1000
-    if "CUDAExecutionProvider" in ort.get_available_providers():
-        sess = ort.InferenceSession(args.perch_onnx, providers=["CUDAExecutionProvider"])
-        xg = np.random.randn(64, WIN).astype(np.float32)
-        t, _ = timed(lambda a: sess.run(None, {inp: a}), xg, args.iters)
-        r["gpu_ms"] = t / 64 * 1000
-    return r
+    perch = PerchGPU(args.perch_model, batch=64)
+    x = np.random.randn(64, WIN).astype(np.float32)
+    feats = torch.randn(64, cfg["frames"], cfg["dim"], device="cuda")
+    tp, _ = timed(perch, x, args.iters)
+    th, _ = timed(probe, feats, args.iters, cuda=True)
+    nan = float("nan")
+    return {"params_m": n / 1e6, "size_mb": n * 4 / 1e6, "gflops": nan,
+            "cpu1_ms": nan, "cpu1_feat_ms": nan, "cpu4_ms": nan, "cpu4_feat_ms": nan,
+            "gpu_ms": (tp + th) / 64 * 1000,
+            "note": "Perch is GPU-only; params/size are the probe head only"}
 
 
 REFERENCE = {  # used when --runs is not given
@@ -116,7 +110,8 @@ REFERENCE = {  # used when --runs is not given
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", default=None, help="benchmark every run dir with a config.json")
-    ap.add_argument("--perch-onnx", default=None)
+    ap.add_argument("--perch-model", "--perch-onnx", dest="perch_model", default=None,
+                    help="Perch v2 .onnx or GPU SavedModel dir (timed on GPU only)")
     ap.add_argument("--batch", type=int, default=12)  # one 60 s file
     ap.add_argument("--iters", type=int, default=10)
     ap.add_argument("--csv", default=None)
@@ -131,8 +126,8 @@ def main():
     rows = []
     for name, cfg in configs.items():
         if cfg.get("kind") == "perch_probe":
-            if not args.perch_onnx:
-                print(f"[skip] {name}: pass --perch-onnx to time Perch")
+            if not args.perch_model or not torch.cuda.is_available():
+                print(f"[skip] {name}: Perch is GPU-only; needs --perch-model and a GPU")
                 continue
             r = bench_perch_probe(cfg, args)
         else:
@@ -140,6 +135,8 @@ def main():
         r["variant"] = name
         r["preds_per_sec_cpu1"] = 1000 / r["cpu1_ms"]
         r["realtime_x_cpu1"] = 5000 / r["cpu1_ms"]
+        if r.get("gpu_ms"):
+            r["preds_per_sec_gpu"] = 1000 / r["gpu_ms"]
         rows.append(r)
         print(f"{name:24s} params {r['params_m']:6.2f}M  GFLOPs {r['gflops']:6.2f}  "
               f"CPU1 {r['cpu1_ms']:7.1f} ms  CPU4 {r['cpu4_ms']:7.1f} ms  "

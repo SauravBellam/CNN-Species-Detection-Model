@@ -2,7 +2,8 @@
 torch
 torchaudio
 torchvision
-onnxruntime-gpu  # NOT plain onnxruntime -- otherwise Perch silently runs on CPU
+onnxruntime-gpu  # Perch .onnx runs with the CUDA provider only (no CPU fallback)
+# tensorflow[and-cuda]  # only if using Google's GPU Perch v2 SavedModel instead of the .onnx
 onnx
 onnxscript
 numpy

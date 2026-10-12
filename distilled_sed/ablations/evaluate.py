@@ -86,9 +86,15 @@ def bang_for_buck(table, runs):
     if not rows:
         return None
     df = pd.DataFrame(rows).set_index("variant").sort_values("cpu1_ms")
-    # Pareto frontier: no other variant is both cheaper (CPU, 1 thread) and better (macro AUC)
-    q, c = df["auc_soundscape_macro"].values, df["cpu1_ms"].values
-    df["pareto"] = [not np.any((c <= c[i]) & (q >= q[i]) & ((c < c[i]) | (q > q[i])))
+    # Pareto frontier: no other variant is both cheaper and better (macro AUC). Done on CPU
+    # time (on-site box) and on GPU time; Perch is GPU-only so it only enters the GPU frontier.
+    q = df["auc_soundscape_macro"].values
+    for col, name in (("cpu1_ms", "pareto"), ("gpu_ms", "pareto_gpu")):
+        if col not in df:
+            continue
+        c = df[col].values
+        df[name] = [bool(np.isfinite(c[i])) and
+                    not np.any(np.isfinite(c) & (c <= c[i]) & (q >= q[i]) & ((c < c[i]) | (q > q[i])))
                     for i in range(len(df))]
     if "resnet_baseline" in df.index:
         b = df.loc["resnet_baseline"]
@@ -98,7 +104,7 @@ def bang_for_buck(table, runs):
                                                df["auc_gain_vs_baseline"] / extra_ms, np.nan)
     df.to_csv(runs / "bang_for_buck.csv")
     cols = [c for c in ["auc_soundscape_macro", "cpu1_ms", "gflops", "params_m",
-                        "train_gpu_hours", "auc_gain_per_extra_ms", "pareto"] if c in df.columns]
+                        "gpu_ms", "train_gpu_hours", "auc_gain_per_extra_ms", "pareto", "pareto_gpu"] if c in df.columns]
     (runs / "bang_for_buck.md").write_text(df[cols].round(4).to_markdown() + "\n")
     print("\nBang for buck (sorted by CPU ms per prediction):")
     print(df[cols].round(4).to_string())

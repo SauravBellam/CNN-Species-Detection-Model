@@ -528,5 +528,8 @@ PILOT=1 bash distilled_sed/scripts/run_ablations_l4.sh   # quick timing check
 bash distilled_sed/scripts/run_ablations_l4.sh           # pseudo-label, train all, score, cost
 ```
 
-`PERCH_ONNX_PATH` must be a Perch v2 ONNX with `label` and `embedding` outputs (e.g. the
-`perch-onnx-for-birdclef-2026` Kaggle dataset); `PERCH_LABELS` is Perch v2's `assets/labels.csv`.
+Perch runs **only on the GPU** (`distilled_sed/perch_gpu.py`). `PERCH_ONNX_PATH` is either a Perch v2
+`.onnx` (run with onnxruntime-gpu's CUDA provider only; the session refuses to start if any node would
+fall back to the CPU) or the directory of Google's GPU Perch v2 TensorFlow SavedModel (Kaggle Models
+`google/bird-vocalization-classifier`, TensorFlow 2, `perch_v2`, not `perch_v2_cpu`). Either must
+expose `label` and `embedding` outputs. `PERCH_LABELS` is Perch v2's `assets/labels.csv`.

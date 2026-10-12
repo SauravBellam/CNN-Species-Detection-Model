@@ -78,7 +78,6 @@ DEBUG = os.environ.get("DEBUG", str(DEBUG)) in ("1", "True", "true")  # [ablatio
 # -----------------------------------------------------------------
 COMP_DIR = Path("/kaggle/input/competitions/birdclef-2026")
 WAVEFORM_CACHE_DIR = Path("/kaggle/input/datasets/tuckerarrants/birdclef-2026-waveform-cache/waveform_cache")
-PERCH_ONNX_PATH = Path("/kaggle/input/datasets/tuckerarrants/perch-v2-no-dft-onnx/perch_v2_no_dft.onnx")
 
 LABELS_PATH     = COMP_DIR / "train_soundscapes_labels.csv"
 TAXONOMY_PATH   = COMP_DIR / "taxonomy.csv"
@@ -180,7 +179,7 @@ SOURCE_WEIGHTS = {
 # [ablation hook] env overrides --------------------------------------
 def _apply_overrides():
     g = globals()
-    for k in ("COMP_DIR", "WAVEFORM_CACHE_DIR", "PERCH_ONNX_PATH", "OUT_DIR", "PSEUDO_DIR"):
+    for k in ("COMP_DIR", "WAVEFORM_CACHE_DIR", "OUT_DIR", "PSEUDO_DIR"):
         if os.environ.get(k):
             g[k] = Path(os.environ[k])
     g["LABELS_PATH"] = g["COMP_DIR"] / "train_soundscapes_labels.csv"

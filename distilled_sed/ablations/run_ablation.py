@@ -5,7 +5,7 @@
 
 Each variant writes runs/ablations/<name>/{oof.npz, history.json, *.onnx}.
 Data paths are passed through env vars (COMP_DIR, WAVEFORM_CACHE_DIR,
-PERCH_ONNX_PATH); see distilled_sed/model1_sed.py.
+PSEUDO_DIR); see distilled_sed/model1_sed.py.
 """
 import argparse
 import json
