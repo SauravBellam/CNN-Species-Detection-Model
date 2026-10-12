@@ -194,11 +194,14 @@ def extract_chunk(w, start):
     return w[start:start + WIN].astype(np.float32)
 
 
-def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, chunk=256):
-    """Load items on `workers` threads (bounded: `chunk` at a time, in order) and run
-    Perch on large batches of windows pooled across items, so the GPU is not left
-    waiting on disk. load_fn(item) -> (n_windows, WIN) float32 array, or None to skip.
+def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, prefetch=512):
+    """Run Perch on large batches pooled across items while audio keeps loading.
+
+    Loading runs on `workers` threads with up to `prefetch` items in flight at all
+    times (bounded memory), so the GPU never waits for a whole chunk to load.
+    load_fn(item) -> (n_windows, WIN) float32 array, or None to skip.
     Yields (item, windows, logits, emb, spatial) per item, in input order."""
+    from collections import deque
     from concurrent.futures import ThreadPoolExecutor
     buf, n_buf = [], 0
 
@@ -211,14 +214,19 @@ def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, chunk=25
             o += n
 
     with ThreadPoolExecutor(workers) as ex:
-        for c in range(0, len(items), chunk):
-            for it, x in zip(items[c:c + chunk], ex.map(load_fn, items[c:c + chunk])):
-                if x is None:
-                    continue
-                buf.append((it, x)); n_buf += len(x)
-                if n_buf >= flush_windows:
-                    yield from flush()
-                    buf, n_buf = [], 0
+        pending, nxt = deque(), 0
+        while pending or nxt < len(items):
+            while nxt < len(items) and len(pending) < prefetch:   # keep the loaders busy
+                pending.append((items[nxt], ex.submit(load_fn, items[nxt])))
+                nxt += 1
+            it, fut = pending.popleft()
+            x = fut.result()
+            if x is None:
+                continue
+            buf.append((it, x)); n_buf += len(x)
+            if n_buf >= flush_windows:
+                yield from flush()
+                buf, n_buf = [], 0
         if buf:
             yield from flush()
 
