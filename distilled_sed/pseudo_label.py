@@ -194,6 +194,9 @@ def extract_chunk(w, start):
     return w[start:start + WIN].astype(np.float32)
 
 
+TIMING = {"perch": 0.0, "wait_audio": 0.0}  # seconds; printed with progress
+
+
 def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, prefetch=512):
     """Run Perch on large batches pooled across items while audio keeps loading.
 
@@ -206,7 +209,9 @@ def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, prefetch
     buf, n_buf = [], 0
 
     def flush():
+        t = time.time()
         L, E, S = perch(np.concatenate([x for _, x in buf]))
+        TIMING["perch"] += time.time() - t
         o = 0
         for it, x in buf:
             n = len(x)
@@ -220,7 +225,9 @@ def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, prefetch
                 pending.append((items[nxt], ex.submit(load_fn, items[nxt])))
                 nxt += 1
             it, fut = pending.popleft()
+            t = time.time()
             x = fut.result()
+            TIMING["wait_audio"] += time.time() - t
             if x is None:
                 continue
             buf.append((it, x)); n_buf += len(x)
@@ -315,8 +322,9 @@ def main():
                              "primary_label": str(r.primary_label), "start_sec": 5 * k})
             T.append(tgt); E.append(emb); S.append(sp if keep_spatial else None)
             if n % 1000 == 0:
-                print(f"focal {n}/{len(items)}  windows={len(rows)}  "
-                      f"[{time.time() - t_start:.0f}s]", flush=True)
+                print(f"focal {n}/{len(items)}  windows={len(rows)}  [{time.time() - t_start:.0f}s"
+                      f"  perch {TIMING['perch']:.0f}s  waiting for audio {TIMING['wait_audio']:.0f}s]",
+                      flush=True)
         pd.DataFrame(rows).to_parquet(out / "focal_windows.parquet", index=False)
         np.save(out / "focal_targets.npy", np.concatenate(T).astype(np.float16))
         save_arrays(out, "focal", E, S if keep_spatial else None)
