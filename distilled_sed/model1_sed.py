@@ -221,7 +221,7 @@ if MODE == "train":
 sample_sub = pd.read_csv(SAMPLE_SUB_PATH)
 PRIMARY_LABELS = sample_sub.columns[1:].tolist()
 LABEL2IDX = {label: idx for idx, label in enumerate(PRIMARY_LABELS)}
-taxonomy = pd.read_csv(TAXONOMY_PATH)
+taxonomy = pd.read_csv(TAXONOMY_PATH, dtype={"primary_label": str})
 label_to_taxon = dict(zip(taxonomy["primary_label"].astype(str),
                           taxonomy["class_name"].astype(str)))
 TAXON_MASKS = {t: np.array([i for i, l in enumerate(PRIMARY_LABELS)
@@ -229,8 +229,8 @@ TAXON_MASKS = {t: np.array([i for i, l in enumerate(PRIMARY_LABELS)
                for t in ["Aves", "Amphibia", "Insecta", "Mammalia", "Reptilia"]}
 
 # --- Focal recording metadata ---
-audio_cache_meta = pd.read_csv(WAVEFORM_CACHE_DIR / "audio_cache_meta.csv")
-train_df = pd.read_csv(COMP_DIR / "train.csv")
+audio_cache_meta = pd.read_csv(WAVEFORM_CACHE_DIR / "audio_cache_meta.csv", dtype={"primary_label": str})
+train_df = pd.read_csv(COMP_DIR / "train.csv", dtype={"primary_label": str})
 audio_cache_meta = audio_cache_meta.merge(
     train_df[["filename", "secondary_labels"]], on="filename", how="left"
 )
@@ -247,7 +247,7 @@ sc_cache_meta["label_list"] = sc_cache_meta["label_list"].apply(
 print(f"Soundscape cache: {len(sc_cache_meta)} windows")
 
 # --- Build soundscape label matrix from ground truth ---
-sc_labels_raw = pd.read_csv(LABELS_PATH).drop_duplicates()
+sc_labels_raw = pd.read_csv(LABELS_PATH, dtype={"primary_label": str}).drop_duplicates()
 sc_labels_raw["start_sec"] = pd.to_timedelta(sc_labels_raw["start"]).dt.total_seconds().astype(int)
 
 Y_SC = np.zeros((len(sc_cache_meta), NUM_CLASSES), dtype=np.float32)

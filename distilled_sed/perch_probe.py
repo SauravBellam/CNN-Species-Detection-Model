@@ -77,7 +77,7 @@ def main():
     K = len(primary)
 
     # ---- folds, replicated from model1_sed.py
-    acm = pd.read_csv(args.waveform_cache / "audio_cache_meta.csv")
+    acm = pd.read_csv(args.waveform_cache / "audio_cache_meta.csv", dtype={"primary_label": str})
     acm = acm[acm["primary_label"].isin(l2i)].drop_duplicates("original_idx").reset_index(drop=True)
     acm["fold"] = -1
     for f, (_, vi) in enumerate(StratifiedKFold(N_FOLDS, shuffle=True, random_state=SEED)
@@ -95,7 +95,7 @@ def main():
     sc_meta["fold"] = sc_meta["filename"].map(dict(zip(files["filename"], files["fold"]))).fillna(-1).astype(int)
 
     # ---- labels for the validation windows (same construction as model1_sed.py)
-    raw = pd.read_csv(args.comp_dir / "train_soundscapes_labels.csv").drop_duplicates()
+    raw = pd.read_csv(args.comp_dir / "train_soundscapes_labels.csv", dtype={"primary_label": str}).drop_duplicates()
     raw["start_sec"] = pd.to_timedelta(raw["start"]).dt.total_seconds().astype(int)
     Y = np.zeros((len(sc_meta), K), np.float32)
     lab = raw.groupby(["filename", "start_sec"])["primary_label"].apply(lambda s: ";".join(s))
@@ -113,8 +113,8 @@ def main():
     unl_rows = np.where(~sc_win["labeled"].values)[0]
 
     oof = {k: np.full((len(sc_meta), K), np.nan, np.float32) for k in ("clip", "fmax", "blend")}
-    train_df = pd.read_csv(args.comp_dir / "train.csv")
-    tax = pd.read_csv(args.comp_dir / "taxonomy.csv")
+    train_df = pd.read_csv(args.comp_dir / "train.csv", dtype={"primary_label": str})
+    tax = pd.read_csv(args.comp_dir / "taxonomy.csv", dtype={"primary_label": str})
     groups = class_groups(primary, dict(zip(tax["primary_label"].astype(str), tax["class_name"].astype(str))),
                           train_df["primary_label"].astype(str).value_counts().reindex(primary).fillna(0).values)
     ns22_all = sc_meta["site"].values != "S22"

@@ -231,7 +231,7 @@ def main():
 
     primary = pd.read_csv(args.comp_dir / "sample_submission.csv").columns[1:].tolist()
     l2i = {l: i for i, l in enumerate(primary)}
-    taxonomy = pd.read_csv(args.comp_dir / "taxonomy.csv")
+    taxonomy = pd.read_csv(args.comp_dir / "taxonomy.csv", dtype={"primary_label": str})
     bc_idx, mapped, proxies, cls = build_mapping(taxonomy, pd.read_csv(args.perch_labels), primary)
     perch = Perch(args.perch_onnx, batch=args.batch, allow_cpu=args.allow_cpu)
     keep_spatial = not args.no_spatial and perch.spatial_key is not None
@@ -240,8 +240,8 @@ def main():
 
     # ---------------- focal clips
     if not args.skip_focal:
-        meta = pd.read_csv(args.waveform_cache / "audio_cache_meta.csv")
-        train_df = pd.read_csv(args.comp_dir / "train.csv")
+        meta = pd.read_csv(args.waveform_cache / "audio_cache_meta.csv", dtype={"primary_label": str})
+        train_df = pd.read_csv(args.comp_dir / "train.csv", dtype={"primary_label": str})
         meta = meta.merge(train_df[["filename", "secondary_labels"]], on="filename", how="left")
         meta = meta[meta["primary_label"].astype(str).isin(l2i)].drop_duplicates("cache_file")
         rows, T, E, S = [], [], [], []
@@ -277,7 +277,7 @@ def main():
 
     # ---------------- soundscapes
     sc_meta = pd.read_csv(args.waveform_cache / "soundscape_cache_meta.csv")
-    labels_raw = pd.read_csv(args.comp_dir / "train_soundscapes_labels.csv").drop_duplicates()
+    labels_raw = pd.read_csv(args.comp_dir / "train_soundscapes_labels.csv", dtype={"primary_label": str}).drop_duplicates()
     labels_raw["start_sec"] = pd.to_timedelta(labels_raw["start"]).dt.total_seconds().astype(int)
     labeled_files = sorted(labels_raw["filename"].unique())
     all_files = sorted(p.name for p in (args.comp_dir / "train_soundscapes").glob("*.ogg"))

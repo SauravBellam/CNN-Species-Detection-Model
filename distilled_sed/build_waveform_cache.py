@@ -63,7 +63,7 @@ def main():
     (args.out / "soundscapes").mkdir(parents=True, exist_ok=True)
 
     # ---- focal clips
-    train = pd.read_csv(args.comp_dir / "train.csv")
+    train = pd.read_csv(args.comp_dir / "train.csv", dtype={"primary_label": str})
     train["original_idx"] = np.arange(len(train))
     train["cache_file"] = [f"focal/{i:06d}.pt" for i in train["original_idx"]]
     jobs = [(args.comp_dir / "train_audio" / fn, args.out / cf, args.max_seconds)
@@ -76,7 +76,7 @@ def main():
         .to_csv(args.out / "audio_cache_meta.csv", index=False)
 
     # ---- labelled soundscapes (full 60 s files)
-    lab = pd.read_csv(args.comp_dir / "train_soundscapes_labels.csv").drop_duplicates()
+    lab = pd.read_csv(args.comp_dir / "train_soundscapes_labels.csv", dtype={"primary_label": str}).drop_duplicates()
     lab["start_sec"] = pd.to_timedelta(lab["start"]).dt.total_seconds().astype(int)
     files = sorted(lab["filename"].unique())
     file_meta = pd.DataFrame({"filename": files,

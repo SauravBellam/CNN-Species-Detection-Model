@@ -128,7 +128,7 @@ def main():
             continue
         d, sel = load_run(f)
         if taxon_classes is None:
-            tax = pd.read_csv(args.taxonomy)
+            tax = pd.read_csv(args.taxonomy, dtype={"primary_label": str})
             l2t = dict(zip(tax["primary_label"].astype(str), tax["class_name"].astype(str)))
             labels = d["labels"]
             taxon_classes = {t: np.array([i for i, l in enumerate(labels) if l2t.get(l) == t])
