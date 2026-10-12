@@ -502,6 +502,11 @@ Perch pipeline in the same notebook. All credit for those ideas goes to the orig
 - Post-hoc, no retraining: clip vs frame-max head, temporal smoothing, taxonomy smoothing, and the
   site/hour prior.
 
+**Tracking and graphs.** Every run (CNN variants, baseline and Perch probe) writes `curves.csv`
+with every metric below plus train/validation loss for every epoch, per fold and pooled over folds.
+At the end `ablations/plot.py` writes `<runs>/plots/`: learning curves for every metric across all
+variants, per-variant curves, final-value bar charts per metric, and cost vs quality.
+
 Metrics: macro ROC-AUC, PR-AUC, LRAP, macro F1@0.5, ECE, Brier, temporal jitter, AUC for rare (<20
 clips) and common (≥100 clips) species, and per-taxon AUC; plus params, size and CPU ms per 5 s
 window from `ablations/benchmark_cost.py`.

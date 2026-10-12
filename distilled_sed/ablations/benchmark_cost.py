@@ -12,6 +12,7 @@ over the pooled baseline; deltas are ~free while multires triples feature
 time; Perch is several times slower than the distilled student.
 """
 import argparse
+import csv
 import time
 
 import torch
@@ -37,20 +38,22 @@ def main():
     ap.add_argument("--batch", type=int, default=12)  # one 60 s file
     ap.add_argument("--iters", type=int, default=10)
     ap.add_argument("--perch-onnx", default=None)
+    ap.add_argument("--csv", default=None, help="also write results here (read by plot.py)")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
     wav = torch.randn(args.batch, 1, WIN)
 
     configs = [
-        ("ResNet18 + SED head, delta mel (full)", "sed", "delta", 256),
-        ("ResNet18 + SED head, single mel", "sed", "single", 256),
-        ("ResNet18 + SED head, multires mel", "sed", "multires", 256),
-        ("ResNet18 + SED head, delta, 128 mel", "sed", "delta", 128),
-        ("ResNet18 pooled (baseline), delta mel", "pooled", "delta", 256),
+        ("full", "ResNet18 + SED head, delta mel (full)", "sed", "delta", 256),
+        ("single_channel_mel", "ResNet18 + SED head, single mel", "sed", "single", 256),
+        ("multires_mel", "ResNet18 + SED head, multires mel", "sed", "multires", 256),
+        ("delta_128mel", "ResNet18 + SED head, delta, 128 mel", "sed", "delta", 128),
+        ("resnet_baseline", "ResNet18 pooled (baseline), delta mel", "pooled", "delta", 256),
     ]
+    results = []
     print(f"{'config':42s} {'params(M)':>9s} {'MB':>6s} {'feat ms':>8s} {'net ms':>7s} "
           f"{'total ms/5s':>11s} {'x realtime':>10s}")
-    for name, head, stack, mels in configs:
+    for key, name, head, stack, mels in configs:
         feat = MelFeatures(n_mels=mels, stack_mode=stack).eval()
         model = BirdSEDModel(pretrained=False, in_chans=feat.n_channels, head=head,
                              use_distill=False).eval()
@@ -60,6 +63,8 @@ def main():
         f_ms, n_ms = tf / args.batch * 1000, tn / args.batch * 1000
         print(f"{name:42s} {n/1e6:9.2f} {n*4/1e6:6.1f} {f_ms:8.1f} {n_ms:7.1f} "
               f"{f_ms + n_ms:11.1f} {5000 / (f_ms + n_ms):10.0f}")
+        results.append({"config": key, "params_m": n / 1e6, "mb": n * 4 / 1e6,
+                        "feat_ms": f_ms, "net_ms": n_ms, "total_ms": f_ms + n_ms})
 
     if args.perch_onnx:
         import onnxruntime as ort
@@ -75,6 +80,13 @@ def main():
         ms = (time.perf_counter() - t) / args.iters / args.batch * 1000
         print(f"{'Perch v2 (teacher / probe backbone)':42s} {'-':>9s} {'-':>6s} {'-':>8s} {ms:7.1f} "
               f"{ms:11.1f} {5000 / ms:10.0f}")
+        results.append({"config": "perch_attn_probe", "params_m": float("nan"), "mb": float("nan"),
+                        "feat_ms": 0.0, "net_ms": ms, "total_ms": ms})
+
+    if args.csv:
+        with open(args.csv, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(results[0]))
+            w.writeheader(); w.writerows(results)
 
 
 if __name__ == "__main__":

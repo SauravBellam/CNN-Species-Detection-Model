@@ -54,6 +54,7 @@ fail=0; for p in "${pids[@]}"; do wait "$p" || fail=1; done
 # ---- 3. score, cost, heatmaps
 python -m distilled_sed.ablations.evaluate --runs "$OUT" --taxonomy "$COMP_DIR/taxonomy.csv"
 # CPU on purpose: this measures on-site inference cost, not training speed
-python -m distilled_sed.ablations.benchmark_cost --threads 1 --perch-onnx "$PERCH_ONNX_PATH" | tee "$OUT/cost.txt"
+python -m distilled_sed.ablations.benchmark_cost --threads 1 --perch-onnx "$PERCH_ONNX_PATH" --csv "$OUT/cost.csv" | tee "$OUT/cost.txt"
+python -m distilled_sed.ablations.plot --runs "$OUT"
 echo "Attention heatmaps: $OUT/*/attention_heatmaps.zip"
 exit $fail

@@ -408,6 +408,13 @@ def make_model(pretrained=True):
                         embed_dim=PERCH_EMBED_DIM, stop_grad_cls=STOP_GRAD_CLS,
                         freq_pool=FREQ_POOL, time_pool=TIME_POOL).to(device)
 
+# --- per-epoch metric tracking (curves.csv -> ablations/plot.py) ---
+from .tracking import class_groups, eval_metrics, to_long, write_curves
+VARIANT = OUT_DIR.name
+CURVE_GROUPS = class_groups(
+    PRIMARY_LABELS, label_to_taxon,
+    train_df["primary_label"].astype(str).value_counts().reindex(PRIMARY_LABELS).fillna(0).values)
+
 print("OK Model definitions ready")
 
 
@@ -745,7 +752,7 @@ def train_fold(fold_k):
     history = {"ep": [], "train_loss": [], "cls_loss": [], "dist_loss": [],
                "macro": [], "ns22_macro": [],
                "ns22_Aves": [], "ns22_Amphibia": [], "ns22_Insecta": [], "ns22_Mammalia": [],
-               "val_preds": []}
+               "val_preds": [], "epoch_metrics": []}
     best_ns22, best_state_ns22 = -1.0, None
     best_macro, best_state_macro = -1.0, None
     val_wavs = _load_val_waveforms(val_sc_df)
@@ -829,6 +836,12 @@ def train_fold(fold_k):
         for t in ["Aves", "Amphibia", "Insecta", "Mammalia"]:
             history[f"ns22_{t}"].append(r[f"non_s22_{t}"])
         history["val_preds"].append(val_preds.astype(np.float32))
+        em = eval_metrics(Y_val, val_preds, val_sc_df["filename"].values,
+                          val_sc_df["start_sec"].values, ns22_val, CURVE_GROUPS)
+        em.update(train_loss=el / nb_count, cls_loss=el_cls / nb_count, dist_loss=el_dist / nb_count,
+                  auc_head_clip=r["ns22_clip"], auc_head_fmax=r["ns22_fmax"],
+                  epoch_seconds=time.time() - t0)
+        history["epoch_metrics"].append(em)
         if len(track["idx"]):
             m.eval()
             with torch.no_grad():
@@ -980,6 +993,25 @@ else:
         for t in ["Aves", "Amphibia", "Insecta", "Mammalia"]:
             print(f"    {t:<12}: {r_all.get(f'non_s22_{t}', float('nan')):.4f}")
     
+    # Per-epoch curves for every metric: per fold and pooled over folds -> curves.csv
+    _rows = []
+    for k, h in all_hist.items():
+        for ep, em in enumerate(h["epoch_metrics"]):
+            _rows += to_long(VARIANT, f"fold{k}", ep, em)
+    _ks = sorted(all_hist)
+    for ep in range(min(len(all_hist[k]["val_preds"]) for k in _ks) if _ks else 0):
+        _vm = [sc_cache_meta["fold"].values == k for k in _ks]
+        pooled = eval_metrics(
+            np.concatenate([Y_SC[v] for v in _vm]),
+            np.concatenate([all_hist[k]["val_preds"][ep] for k in _ks]),
+            np.concatenate([sc_cache_meta["filename"].values[v] for v in _vm]),
+            np.concatenate([sc_cache_meta["start_sec"].values[v] for v in _vm]),
+            np.concatenate([non_s22_mask_sc[v] for v in _vm]), CURVE_GROUPS)
+        for key in ("train_loss", "cls_loss", "dist_loss", "epoch_seconds"):
+            pooled[key] = float(np.mean([all_hist[k]["epoch_metrics"][ep][key] for k in _ks]))
+        _rows += to_long(VARIANT, "pooled", ep, pooled)
+    write_curves(OUT_DIR / "curves.csv", _rows)
+
     # Per-epoch progression
     print("\nPer-epoch pooled non-S22 AUC:")
     fold_true, fold_ns22_m = {}, {}

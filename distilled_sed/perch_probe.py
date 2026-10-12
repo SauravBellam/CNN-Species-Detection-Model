@@ -19,6 +19,7 @@ site cost compared to the distilled ResNet?
         --out runs/ablations/perch_attn_probe
 """
 import argparse
+import time
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +28,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.model_selection import GroupKFold, StratifiedKFold
+
+from .tracking import class_groups, eval_metrics, to_long, write_curves
 
 N_FOLDS, SEED = 5, 42
 
@@ -108,6 +111,19 @@ def main():
     unl_rows = np.where(~sc_win["labeled"].values)[0]
 
     oof = {k: np.full((len(sc_meta), K), np.nan, np.float32) for k in ("clip", "fmax", "blend")}
+    train_df = pd.read_csv(args.comp_dir / "train.csv")
+    tax = pd.read_csv(args.comp_dir / "taxonomy.csv")
+    groups = class_groups(primary, dict(zip(tax["primary_label"].astype(str), tax["class_name"].astype(str))),
+                          train_df["primary_label"].astype(str).value_counts().reindex(primary).fillna(0).values)
+    ns22_all = sc_meta["site"].values != "S22"
+    rows, per_epoch = [], {}   # per_epoch[ep] = list of (val index, probs, train_loss)
+
+    def predict(model, va):
+        model.eval()
+        with torch.no_grad():
+            x = torch.from_numpy(np.asarray(SX[va["row"].values], np.float32)).to(dev)
+            clip, frame = model(x)
+            return torch.sigmoid(clip).cpu().numpy(), torch.sigmoid(frame.max(1).values).cpu().numpy()
     for k in args.folds:
         ST = np.load(args.pseudo_dir / f"sc_targets_fold{k}.npy", mmap_mode="r")
         tr_lab = sc_meta[(sc_meta["fold"] != k) & (sc_meta["row"] >= 0)]
@@ -125,7 +141,9 @@ def main():
                 ys.append(y if y is not None else np.asarray((FT if src == "f" else ST)[r], np.float32))
             return torch.from_numpy(np.stack(xs)).to(dev), torch.from_numpy(np.stack(ys)).to(dev)
 
+        va = sc_meta[(sc_meta["fold"] == k) & (sc_meta["row"] >= 0)]
         for ep in range(args.epochs):
+            t0 = time.time()
             model.train()
             perm = np.random.permutation(len(items))
             tot = 0.0
@@ -136,18 +154,28 @@ def main():
                     + 0.5 * F.binary_cross_entropy_with_logits(frame.max(1).values, y)
                 opt.zero_grad(); loss.backward(); opt.step()
                 tot += loss.item()
-            print(f"fold {k} ep {ep:02d} loss {tot / max(1, len(perm) // args.batch):.4f}", flush=True)
+            tl = tot / max(1, -(-len(perm) // args.batch))
+            pc, pf = predict(model, va)
+            pb = 0.5 * pc + 0.5 * pf
+            em = eval_metrics(Y[va.index], pb, va["filename"].values, va["start_sec"].values,
+                              ns22_all[va.index], groups)
+            em.update(train_loss=tl, epoch_seconds=time.time() - t0)
+            rows += to_long(args.out.name, f"fold{k}", ep, em)
+            per_epoch.setdefault(ep, []).append((va.index.values, pb, tl, em["epoch_seconds"]))
+            print(f"fold {k} ep {ep:02d} loss {tl:.4f} val auc {em['auc_soundscape_macro']:.4f}", flush=True)
 
-        va = sc_meta[(sc_meta["fold"] == k) & (sc_meta["row"] >= 0)]
-        model.eval()
-        with torch.no_grad():
-            x = torch.from_numpy(np.asarray(SX[va["row"].values], np.float32)).to(dev)
-            clip, frame = model(x)
-            pc, pf = torch.sigmoid(clip).cpu().numpy(), torch.sigmoid(frame.max(1).values).cpu().numpy()
         oof["clip"][va.index], oof["fmax"][va.index] = pc, pf
         oof["blend"][va.index] = 0.5 * pc + 0.5 * pf
 
-    train_df = pd.read_csv(args.comp_dir / "train.csv")
+    for ep, parts in sorted(per_epoch.items()):
+        idx = np.concatenate([a for a, _, _, _ in parts])
+        em = eval_metrics(Y[idx], np.concatenate([b for _, b, _, _ in parts]),
+                          sc_meta["filename"].values[idx], sc_meta["start_sec"].values[idx],
+                          ns22_all[idx], groups)
+        em["train_loss"] = float(np.mean([c for _, _, c, _ in parts]))
+        em["epoch_seconds"] = float(np.mean([d for _, _, _, d in parts]))
+        rows += to_long(args.out.name, "pooled", ep, em)
+    write_curves(args.out / "curves.csv", rows)
     np.savez_compressed(
         args.out / "oof.npz", y=Y, ns22=sc_meta["site"].values != "S22",
         filename=sc_meta["filename"].values.astype(str), start_sec=sc_meta["start_sec"].values.astype(int),
