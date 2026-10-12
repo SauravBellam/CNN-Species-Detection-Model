@@ -194,6 +194,35 @@ def extract_chunk(w, start):
     return w[start:start + WIN].astype(np.float32)
 
 
+def batched_perch(items, load_fn, perch, flush_windows=512, workers=12, chunk=256):
+    """Load items on `workers` threads (bounded: `chunk` at a time, in order) and run
+    Perch on large batches of windows pooled across items, so the GPU is not left
+    waiting on disk. load_fn(item) -> (n_windows, WIN) float32 array, or None to skip.
+    Yields (item, windows, logits, emb, spatial) per item, in input order."""
+    from concurrent.futures import ThreadPoolExecutor
+    buf, n_buf = [], 0
+
+    def flush():
+        L, E, S = perch(np.concatenate([x for _, x in buf]))
+        o = 0
+        for it, x in buf:
+            n = len(x)
+            yield it, x, L[o:o + n], E[o:o + n], (None if S is None else S[o:o + n])
+            o += n
+
+    with ThreadPoolExecutor(workers) as ex:
+        for c in range(0, len(items), chunk):
+            for it, x in zip(items[c:c + chunk], ex.map(load_fn, items[c:c + chunk])):
+                if x is None:
+                    continue
+                buf.append((it, x)); n_buf += len(x)
+                if n_buf >= flush_windows:
+                    yield from flush()
+                    buf, n_buf = [], 0
+        if buf:
+            yield from flush()
+
+
 def load_ogg(path):
     y, sr = sf.read(path, dtype="float32", always_2d=False)
     if y.ndim == 2:
@@ -224,6 +253,7 @@ def main():
     ap.add_argument("--no-spatial", action="store_true")
     ap.add_argument("--skip-focal", action="store_true")
     ap.add_argument("--batch", type=int, default=128, help="Perch windows per GPU batch")
+    ap.add_argument("--workers", type=int, default=12, help="threads loading/decoding audio")
     ap.add_argument("--allow-cpu", action="store_true", help="permit CPU fallback (slow)")
     args = ap.parse_args()
     t_start = time.time()
@@ -245,15 +275,21 @@ def main():
         meta = meta.merge(train_df[["filename", "secondary_labels"]], on="filename", how="left")
         meta = meta[meta["primary_label"].astype(str).isin(l2i)].drop_duplicates("cache_file")
         rows, T, E, S = [], [], [], []
-        for n, r in enumerate(meta.itertuples(index=False)):
+
+        def load_focal_windows(r):
             p = args.waveform_cache / r.cache_file
             if not p.exists():
-                continue
+                return None
             w = torch.load(p, map_location="cpu").float().numpy().reshape(-1) / 32767.0
             nw = int(min(args.max_windows_per_clip, max(1, np.ceil(len(w) / WIN))))
             # cut windows exactly like model1_sed.extract_chunk_np so Perch labels the same
             # audio the CNN trains on (short clips left-padded, last window shifted back)
-            logits, emb, sp = perch(np.stack([extract_chunk(w, 5 * k * SR) for k in range(nw)]))
+            return np.stack([extract_chunk(w, 5 * k * SR) for k in range(nw)])
+
+        items = list(meta.itertuples(index=False))
+        for n, (r, x, logits, emb, sp) in enumerate(
+                batched_perch(items, load_focal_windows, perch, workers=args.workers)):
+            nw = len(x)
             prob = 1 / (1 + np.exp(-map_scores(logits, bc_idx, mapped, proxies)))
             labels = [str(r.primary_label)]
             try:
@@ -266,11 +302,13 @@ def main():
                 pmax = prob[:, c].max()
                 tgt[:, c] = prob[:, c] / pmax if pmax >= args.min_detect else 1.0
             for k in range(nw):
-                rows.append({"cache_file": r.cache_file, "original_idx": int(r.original_idx),
+                rows.append({"cache_file": r.cache_file, "filename": r.filename,
+                             "original_idx": int(r.original_idx),
                              "primary_label": str(r.primary_label), "start_sec": 5 * k})
             T.append(tgt); E.append(emb); S.append(sp if keep_spatial else None)
             if n % 1000 == 0:
-                print(f"focal {n}/{len(meta)}  windows={len(rows)}", flush=True)
+                print(f"focal {n}/{len(items)}  windows={len(rows)}  "
+                      f"[{time.time() - t_start:.0f}s]", flush=True)
         pd.DataFrame(rows).to_parquet(out / "focal_windows.parquet", index=False)
         np.save(out / "focal_targets.npy", np.concatenate(T).astype(np.float16))
         save_arrays(out, "focal", E, S if keep_spatial else None)
@@ -285,12 +323,14 @@ def main():
     file_fold = sc_file_folds(sc_meta)
 
     rows, SC, E, S = [], [], [], []
-    for n, fn in enumerate(labeled_files + unlabeled):
-        y = load_ogg(args.comp_dir / "train_soundscapes" / fn)
+    sc_items = labeled_files + unlabeled
+    load_sc = lambda fn: load_ogg(args.comp_dir / "train_soundscapes" / fn).reshape(N_WINDOWS, WIN)
+    for n, (fn, x, logits, emb, sp) in enumerate(
+            batched_perch(sc_items, load_sc, perch, workers=args.workers)):
         is_lab = fn in file_fold
         if not is_lab:
-            np.save(out / "sc_wave" / f"{Path(fn).stem}.npy", (y * 32767).clip(-32768, 32767).astype(np.int16))
-        logits, emb, sp = perch(y.reshape(N_WINDOWS, WIN))
+            np.save(out / "sc_wave" / f"{Path(fn).stem}.npy",
+                    (x.reshape(-1) * 32767).clip(-32768, 32767).astype(np.int16))
         site, hour = site_hour(fn)
         for k in range(N_WINDOWS):
             rows.append({"filename": fn, "start_sec": 5 * k, "site": site, "hour_utc": hour,
@@ -298,7 +338,7 @@ def main():
         SC.append(map_scores(logits, bc_idx, mapped, proxies)); E.append(emb)
         S.append(sp if keep_spatial else None)
         if n % 200 == 0:
-            print(f"soundscape {n}/{len(labeled_files) + len(unlabeled)}", flush=True)
+            print(f"soundscape {n}/{len(sc_items)}", flush=True)
     win = pd.DataFrame(rows)
     scores = np.concatenate(SC)
 
