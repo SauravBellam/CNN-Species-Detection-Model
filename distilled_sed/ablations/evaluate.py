@@ -108,7 +108,11 @@ def bang_for_buck(table, runs):
     df.to_csv(runs / "bang_for_buck.csv")
     cols = [c for c in ["auc_soundscape_macro", "cpu1_ms", "gflops", "params_m",
                         "gpu_ms", "train_gpu_hours", "auc_gain_per_extra_ms", "pareto", "pareto_gpu"] if c in df.columns]
-    (runs / "bang_for_buck.md").write_text(df[cols].round(4).to_markdown() + "\n")
+    try:
+        md = df[cols].round(4).to_markdown()
+    except ImportError:  # `tabulate` not installed: fall back to plain text
+        md = df[cols].round(4).to_string()
+    (runs / "bang_for_buck.md").write_text(md + "\n")
     print("\nBang for buck (sorted by CPU ms per prediction):")
     print(df[cols].round(4).to_string())
     return df
