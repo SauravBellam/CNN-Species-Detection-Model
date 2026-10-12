@@ -63,7 +63,7 @@ fail=0; for p in "${pids[@]}"; do wait "$p" || fail=1; done
 
 # ---- 3. cost (machine is idle now, so timings are clean), score, graphs
 python -m distilled_sed.ablations.benchmark_cost --runs "$OUT" --perch-model "$PERCH_ONNX_PATH" \
-  | tee "$OUT/cost.txt"
+  | tee "$OUT/cost.txt" || echo "[warn] cost benchmark failed (e.g. no TensorFlow in this venv for Perch); continuing"
 python -m distilled_sed.ablations.evaluate --runs "$OUT" --taxonomy "$COMP_DIR/taxonomy.csv"
 python -m distilled_sed.ablations.plot --runs "$OUT"
 echo "Attention heatmaps: $OUT/*/attention_heatmaps.zip"
