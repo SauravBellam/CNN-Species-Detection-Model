@@ -1,0 +1,1173 @@
+[skip] no_distill
+
+=== single_channel_mel: {'STACK_MODE': 'single', 'FOLDS': [0, 1, 2]} ===
+Device: cuda
+GPU: NVIDIA L4
+Backbone: resnet18
+Train duration: 5s | Mel: 256 mels, n_fft=2048, hop=512
+Distillation: ON (alpha=1.0, cached Perch embeddings)
+Input: single | Head: sed | Pseudo focal: True | Pseudo sc: True
+Batch: 64 | Epochs: 10 | Folds: [0, 1, 2]
+Focal audio cache: 35549 entries
+Soundscape cache: 792 windows
+Soundscape labels: 739/792 windows labeled, 3122 positives, 75 species
+
+Focal fold distribution:
+fold
+0    7110
+1    7110
+2    7110
+3    7110
+4    7109
+Name: count, dtype: int64
+
+Soundscape fold distribution:
+fold
+0    168
+1    156
+2    156
+3    156
+4    156
+Name: count, dtype: int64
+Focal 5 s windows: 152198
+Unlabelled soundscape windows (pseudo): 24000
+
+Upsampled 15 rare species (min=20): 152198 -> 152431 samples
+S22: 480, non-S22: 312
+OK Data loaded
+OK Model definitions ready
+SC MixUp pool: 739 labeled windows
+Focal secondary labels: 4372 files
+OK Data pipeline ready
+OK Training function ready
+
+============================================================
+FOLD 0
+============================================================
+  Streams: {'focal': 121805, 'sc': 624, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4214  4.7 it/s  eta 1.4 min
+      step 400/600  loss=0.3664  5.0 it/s  eta 0.7 min
+      step 600/600  loss=0.3299  4.5 it/s  eta 0.0 min
+    Ep00: loss=0.3299 cls=0.3187 dist=0.0112 lr=5.0e-04 | ns22: 0.5863 | Av=0.2354 Am=0.7236 In=0.6638 Ma=0.1714 [137s] *ns22 *macro
+      step 200/600  loss=0.2446  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.2363  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.2302  3.8 it/s  eta 0.0 min
+    Ep01: loss=0.2302 cls=0.2215 dist=0.0087 lr=5.0e-04 | ns22: 0.5558 | Av=0.3573 Am=0.9207 In=0.4411 Ma=0.2214 [159s] *macro
+      step 200/600  loss=0.2083  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.2063  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.2028  3.8 it/s  eta 0.0 min
+    Ep02: loss=0.2028 cls=0.1949 dist=0.0078 lr=5.0e-04 | ns22: 0.7358 | Av=0.3362 Am=0.7608 In=0.9209 Ma=0.2500 [160s] *ns22 *macro
+      step 200/600  loss=0.1934  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1910  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1889  3.8 it/s  eta 0.0 min
+    Ep03: loss=0.1889 cls=0.1816 dist=0.0073 lr=5.0e-04 | ns22: 0.7509 | Av=0.4992 Am=0.8169 In=0.8861 Ma=0.2143 [159s] *ns22 *macro
+      step 200/600  loss=0.1827  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1811  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1801  3.8 it/s  eta 0.0 min
+    Ep04: loss=0.1801 cls=0.1732 dist=0.0068 lr=5.0e-04 | ns22: 0.8383 | Av=0.8531 Am=0.8581 In=0.9225 Ma=0.2143 [159s] *ns22 *macro
+      step 200/600  loss=0.1763  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1754  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1746  3.8 it/s  eta 0.0 min
+    Ep05: loss=0.1746 cls=0.1681 dist=0.0065 lr=5.0e-04 | ns22: 0.8327 | Av=0.7566 Am=0.9123 In=0.9146 Ma=0.1429 [160s] *macro
+      step 200/600  loss=0.1720  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1717  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1713  3.8 it/s  eta 0.0 min
+    Ep06: loss=0.1713 cls=0.1651 dist=0.0061 lr=5.0e-04 | ns22: 0.8959 | Av=0.8381 Am=0.9197 In=0.9268 Ma=0.8000 [160s] *ns22 *macro
+      step 200/600  loss=0.1700  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1693  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1689  3.8 it/s  eta 0.0 min
+    Ep07: loss=0.1689 cls=0.1630 dist=0.0059 lr=5.0e-04 | ns22: 0.8362 | Av=0.7699 Am=0.9299 In=0.8607 Ma=0.5429 [160s]
+      step 200/600  loss=0.1675  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1671  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1661  3.8 it/s  eta 0.0 min
+    Ep08: loss=0.1661 cls=0.1604 dist=0.0057 lr=5.0e-04 | ns22: 0.8852 | Av=0.9120 Am=0.9194 In=0.8806 Ma=0.9214 [160s] *macro
+      step 200/600  loss=0.1645  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1645  3.9 it/s  eta 0.9 min
+      step 600/600  loss=0.1640  3.9 it/s  eta 0.0 min
+W1012 07:31:30.204000 46410 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1640 cls=0.1585 dist=0.0056 lr=5.0e-04 | ns22: 0.8564 | Av=0.9012 Am=0.9500 In=0.8056 Ma=0.9857 [155s]
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=1.329e-03 (relative 1.18e-04)
+  Exported sed_distill_fold0.onnx (0.2 MB)
+
+============================================================
+FOLD 1
+============================================================
+  Streams: {'focal': 121955, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4137  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.3609  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.3262  3.9 it/s  eta 0.0 min
+    Ep00: loss=0.3262 cls=0.3150 dist=0.0112 lr=5.0e-04 | ns22: 0.4597 | Av=0.2189 Am=0.2737 In=0.6233 Ma=0.4731 [159s] *ns22 *macro
+      step 200/600  loss=0.2379  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.2319  4.0 it/s  eta 0.8 min
+      step 600/600  loss=0.2263  3.9 it/s  eta 0.0 min
+    Ep01: loss=0.2263 cls=0.2177 dist=0.0086 lr=5.0e-04 | ns22: 0.4822 | Av=0.4082 Am=0.7542 In=0.4697 Ma=0.4338 [153s] *ns22 *macro
+      step 200/600  loss=0.2087  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.2046  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.2012  3.8 it/s  eta 0.0 min
+    Ep02: loss=0.2012 cls=0.1934 dist=0.0078 lr=5.0e-04 | ns22: 0.5941 | Av=0.5434 Am=0.9407 In=0.5725 Ma=0.5396 [158s] *ns22 *macro
+      step 200/600  loss=0.1905  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1893  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1876  3.8 it/s  eta 0.0 min
+    Ep03: loss=0.1876 cls=0.1804 dist=0.0072 lr=5.0e-04 | ns22: 0.7110 | Av=0.8406 Am=0.9831 In=0.6143 Ma=0.6190 [158s] *ns22 *macro
+      step 200/600  loss=0.1813  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1806  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1796  3.8 it/s  eta 0.0 min
+    Ep04: loss=0.1796 cls=0.1728 dist=0.0068 lr=5.0e-04 | ns22: 0.7915 | Av=0.8964 Am=0.8475 In=0.7703 Ma=0.5142 [159s] *ns22 *macro
+      step 200/600  loss=0.1753  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1744  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1734  3.8 it/s  eta 0.0 min
+    Ep05: loss=0.1734 cls=0.1670 dist=0.0064 lr=5.0e-04 | ns22: 0.8560 | Av=0.9538 Am=0.8644 In=0.8401 Ma=0.6273 [158s] *ns22 *macro
+      step 200/600  loss=0.1712  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1714  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1708  3.8 it/s  eta 0.0 min
+    Ep06: loss=0.1708 cls=0.1647 dist=0.0061 lr=5.0e-04 | ns22: 0.8558 | Av=0.9406 Am=0.9322 In=0.8150 Ma=0.7421 [158s] *macro
+      step 200/600  loss=0.1696  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1690  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1692  3.8 it/s  eta 0.0 min
+    Ep07: loss=0.1692 cls=0.1633 dist=0.0058 lr=5.0e-04 | ns22: 0.8862 | Av=0.9403 Am=0.8729 In=0.8745 Ma=0.8181 [158s] *ns22 *macro
+      step 200/600  loss=0.1680  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1669  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1658  3.8 it/s  eta 0.0 min
+    Ep08: loss=0.1658 cls=0.1601 dist=0.0056 lr=5.0e-04 | ns22: 0.8802 | Av=0.9688 Am=0.9068 In=0.8362 Ma=0.7931 [159s] *macro
+      step 200/600  loss=0.1629  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1632  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1626  3.8 it/s  eta 0.0 min
+W1012 07:57:57.867000 46410 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1626 cls=0.1571 dist=0.0054 lr=5.0e-04 | ns22: 0.8761 | Av=0.9696 Am=0.8136 In=0.8492 Ma=0.8284 [158s]
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=6.504e-04 (relative 5.25e-05)
+  Exported sed_distill_fold1.onnx (0.2 MB)
+
+============================================================
+FOLD 2
+============================================================
+  Streams: {'focal': 122017, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4322  3.9 it/s  eta 1.7 min
+      step 400/600  loss=0.3779  4.0 it/s  eta 0.8 min
+      step 600/600  loss=0.3433  3.9 it/s  eta 0.0 min
+    Ep00: loss=0.3433 cls=0.3320 dist=0.0112 lr=5.0e-04 | ns22: 0.5421 | Av=0.3247 Am=0.9342 In=0.5609 Ma=0.3534 [154s] *ns22 *macro
+      step 200/600  loss=0.2481  3.9 it/s  eta 1.7 min
+      step 400/600  loss=0.2381  3.9 it/s  eta 0.9 min
+      step 600/600  loss=0.2304  3.9 it/s  eta 0.0 min
+    Ep01: loss=0.2304 cls=0.2217 dist=0.0087 lr=5.0e-04 | ns22: 0.6005 | Av=0.3485 Am=0.9716 In=0.6762 Ma=0.3276 [157s] *ns22 *macro
+      step 200/600  loss=0.2076  4.1 it/s  eta 1.6 min
+      step 400/600  loss=0.2045  4.0 it/s  eta 0.8 min
+      step 600/600  loss=0.2018  3.9 it/s  eta 0.0 min
+    Ep02: loss=0.2018 cls=0.1940 dist=0.0078 lr=5.0e-04 | ns22: 0.5904 | Av=0.3791 Am=0.9343 In=0.6615 Ma=0.2845 [154s] *macro
+      step 200/600  loss=0.1931  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1913  3.9 it/s  eta 0.9 min
+      step 600/600  loss=0.1894  3.9 it/s  eta 0.0 min
+    Ep03: loss=0.1894 cls=0.1821 dist=0.0072 lr=5.0e-04 | ns22: 0.6466 | Av=0.7096 Am=0.8063 In=0.5322 Ma=0.5948 [157s] *ns22 *macro
+      step 200/600  loss=0.1840  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1821  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1805  3.9 it/s  eta 0.0 min
+    Ep04: loss=0.1805 cls=0.1737 dist=0.0067 lr=5.0e-04 | ns22: 0.7367 | Av=0.7672 Am=0.9788 In=0.6220 Ma=0.5690 [157s] *ns22 *macro
+      step 200/600  loss=0.1759  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1747  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1737  3.8 it/s  eta 0.0 min
+    Ep05: loss=0.1737 cls=0.1673 dist=0.0064 lr=5.0e-04 | ns22: 0.7798 | Av=0.7739 Am=0.9207 In=0.7297 Ma=0.7845 [158s] *ns22 *macro
+      step 200/600  loss=0.1709  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1715  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1708  3.8 it/s  eta 0.0 min
+    Ep06: loss=0.1708 cls=0.1647 dist=0.0061 lr=5.0e-04 | ns22: 0.8031 | Av=0.7897 Am=0.9374 In=0.7538 Ma=0.9224 [158s] *ns22 *macro
+      step 200/600  loss=0.1705  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1692  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1687  3.9 it/s  eta 0.0 min
+    Ep07: loss=0.1687 cls=0.1629 dist=0.0058 lr=5.0e-04 | ns22: 0.8332 | Av=0.8388 Am=0.9396 In=0.7641 Ma=0.9224 [157s] *ns22 *macro
+      step 200/600  loss=0.1666  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1668  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1660  3.8 it/s  eta 0.0 min
+    Ep08: loss=0.1660 cls=0.1604 dist=0.0056 lr=5.0e-04 | ns22: 0.8475 | Av=0.8284 Am=0.9727 In=0.7800 Ma=0.9483 [158s] *ns22 *macro
+      step 200/600  loss=0.1639  3.8 it/s  eta 1.7 min
+      step 400/600  loss=0.1646  3.8 it/s  eta 0.9 min
+      step 600/600  loss=0.1641  3.8 it/s  eta 0.0 min
+W1012 08:24:11.212000 46410 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1641 cls=0.1587 dist=0.0054 lr=5.0e-04 | ns22: 0.8696 | Av=0.8136 Am=0.9710 In=0.8490 Ma=0.9828 [158s] *ns22
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=8.078e-04 (relative 6.22e-05)
+  Exported sed_distill_fold2.onnx (0.2 MB)
+Attention heatmaps -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/single_channel_mel/attention_heatmaps.zip
+============================================================
+OOF RESULTS (best-ns22 checkpoints)
+============================================================
+  macro AUC (all):        0.7932
+  macro AUC (non-S22):    0.7230
+    Aves        : 0.7572
+    Amphibia    : 0.8340
+    Insecta     : 0.6382
+    Mammalia    : 0.6638
+Per-epoch curves -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/single_channel_mel/curves.csv
+
+Per-epoch pooled non-S22 AUC:
+  Ep00: 0.4592
+  Ep01: 0.4339
+  Ep02: 0.4762
+  Ep03: 0.5660
+  Ep04: 0.6430
+  Ep05: 0.6739
+  Ep06: 0.7040
+  Ep07: 0.7118
+  Ep08: 0.7230
+  Ep09: 0.7193
+Skipping inference setup (MODE='train')
+Skipping ONNX loading (MODE='train')
+Skipping inference (MODE='train')
+Skipping submission (MODE='train')
+
+=== mean_freq_pool: {'FREQ_POOL': 'mean', 'FOLDS': [0, 1, 2]} ===
+Device: cuda
+GPU: NVIDIA L4
+Backbone: resnet18
+Train duration: 5s | Mel: 256 mels, n_fft=2048, hop=512
+Distillation: ON (alpha=1.0, cached Perch embeddings)
+Input: delta | Head: sed | Pseudo focal: True | Pseudo sc: True
+Batch: 64 | Epochs: 10 | Folds: [0, 1, 2]
+Focal audio cache: 35549 entries
+Soundscape cache: 792 windows
+Soundscape labels: 739/792 windows labeled, 3122 positives, 75 species
+
+Focal fold distribution:
+fold
+0    7110
+1    7110
+2    7110
+3    7110
+4    7109
+Name: count, dtype: int64
+
+Soundscape fold distribution:
+fold
+0    168
+1    156
+2    156
+3    156
+4    156
+Name: count, dtype: int64
+Focal 5 s windows: 152198
+Unlabelled soundscape windows (pseudo): 24000
+
+Upsampled 15 rare species (min=20): 152198 -> 152431 samples
+S22: 480, non-S22: 312
+OK Data loaded
+OK Model definitions ready
+SC MixUp pool: 739 labeled windows
+Focal secondary labels: 4372 files
+OK Data pipeline ready
+OK Training function ready
+
+============================================================
+FOLD 0
+============================================================
+  Streams: {'focal': 121805, 'sc': 624, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4111  3.0 it/s  eta 2.2 min
+      step 400/600  loss=0.3607  3.2 it/s  eta 1.0 min
+      step 600/600  loss=0.3341  3.4 it/s  eta 0.0 min
+    Ep00: loss=0.3341 cls=0.3227 dist=0.0114 lr=5.0e-04 | ns22: 0.4821 | Av=0.1174 Am=0.7526 In=0.4548 Ma=0.2214 [178s] *ns22 *macro
+      step 200/600  loss=0.2615  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.2517  4.3 it/s  eta 0.8 min
+      step 600/600  loss=0.2445  4.0 it/s  eta 0.0 min
+    Ep01: loss=0.2445 cls=0.2356 dist=0.0088 lr=5.0e-04 | ns22: 0.6999 | Av=0.2264 Am=0.8470 In=0.8328 Ma=0.1429 [153s] *ns22 *macro
+      step 200/600  loss=0.2145  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.2098  4.0 it/s  eta 0.8 min
+      step 600/600  loss=0.2055  4.2 it/s  eta 0.0 min
+    Ep02: loss=0.2055 cls=0.1975 dist=0.0080 lr=5.0e-04 | ns22: 0.7749 | Av=0.5791 Am=0.9028 In=0.8314 Ma=0.2000 [143s] *ns22 *macro
+      step 200/600  loss=0.1937  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1921  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1896  3.5 it/s  eta 0.0 min
+    Ep03: loss=0.1896 cls=0.1821 dist=0.0075 lr=5.0e-04 | ns22: 0.7945 | Av=0.8519 Am=0.8888 In=0.8067 Ma=0.3929 [171s] *ns22 *macro
+      step 200/600  loss=0.1808  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1793  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1782  3.5 it/s  eta 0.0 min
+    Ep04: loss=0.1782 cls=0.1711 dist=0.0071 lr=5.0e-04 | ns22: 0.7444 | Av=0.8432 Am=0.8655 In=0.7636 Ma=0.0143 [173s] *macro
+      step 200/600  loss=0.1739  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1725  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1711  3.5 it/s  eta 0.0 min
+    Ep05: loss=0.1711 cls=0.1644 dist=0.0067 lr=5.0e-04 | ns22: 0.7922 | Av=0.9137 Am=0.9083 In=0.8069 Ma=0.0429 [173s] *macro
+      step 200/600  loss=0.1668  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1664  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1656  3.5 it/s  eta 0.0 min
+    Ep06: loss=0.1656 cls=0.1592 dist=0.0064 lr=5.0e-04 | ns22: 0.8130 | Av=0.9207 Am=0.9455 In=0.7913 Ma=0.3643 [172s] *ns22 *macro
+      step 200/600  loss=0.1648  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1634  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1626  3.5 it/s  eta 0.0 min
+    Ep07: loss=0.1626 cls=0.1565 dist=0.0061 lr=5.0e-04 | ns22: 0.7881 | Av=0.9557 Am=0.9312 In=0.7553 Ma=0.2000 [173s]
+      step 200/600  loss=0.1600  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1600  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1595  3.5 it/s  eta 0.0 min
+    Ep08: loss=0.1595 cls=0.1536 dist=0.0058 lr=5.0e-04 | ns22: 0.8165 | Av=0.9381 Am=0.9303 In=0.7719 Ma=0.6000 [173s] *ns22 *macro
+      step 200/600  loss=0.1573  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1577  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1579  3.5 it/s  eta 0.0 min
+W1012 08:53:02.130000 62020 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1579 cls=0.1522 dist=0.0057 lr=5.0e-04 | ns22: 0.8838 | Av=0.9038 Am=0.9403 In=0.8517 Ma=0.9571 [173s] *ns22 *macro
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=8.698e-04 (relative 8.76e-05)
+  Exported sed_distill_fold0.onnx (0.2 MB)
+
+============================================================
+FOLD 1
+============================================================
+  Streams: {'focal': 121955, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4105  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.3635  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.3355  3.5 it/s  eta 0.0 min
+    Ep00: loss=0.3355 cls=0.3241 dist=0.0113 lr=5.0e-04 | ns22: 0.5304 | Av=0.2567 Am=0.8237 In=0.6534 Ma=0.3693 [174s] *ns22 *macro
+      step 200/600  loss=0.2688  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.2586  3.6 it/s  eta 0.9 min
+      step 600/600  loss=0.2523  3.6 it/s  eta 0.0 min
+    Ep01: loss=0.2523 cls=0.2433 dist=0.0090 lr=5.0e-04 | ns22: 0.4839 | Av=0.7891 Am=0.8811 In=0.2639 Ma=0.2457 [169s] *macro
+      step 200/600  loss=0.2261  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.2199  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.2148  3.5 it/s  eta 0.0 min
+    Ep02: loss=0.2148 cls=0.2067 dist=0.0081 lr=5.0e-04 | ns22: 0.5940 | Av=0.7481 Am=0.6356 In=0.5335 Ma=0.3263 [172s] *ns22 *macro
+      step 200/600  loss=0.1984  3.8 it/s  eta 1.8 min
+      step 400/600  loss=0.1955  3.6 it/s  eta 0.9 min
+      step 600/600  loss=0.1934  3.6 it/s  eta 0.0 min
+    Ep03: loss=0.1934 cls=0.1860 dist=0.0075 lr=5.0e-04 | ns22: 0.5748 | Av=0.7876 Am=0.9407 In=0.4204 Ma=0.3069 [169s]
+      step 200/600  loss=0.1839  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1818  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1801  3.5 it/s  eta 0.0 min
+    Ep04: loss=0.1801 cls=0.1731 dist=0.0070 lr=5.0e-04 | ns22: 0.7474 | Av=0.9239 Am=0.8644 In=0.6322 Ma=0.6039 [173s] *ns22 *macro
+      step 200/600  loss=0.1748  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1727  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1715  3.5 it/s  eta 0.0 min
+    Ep05: loss=0.1715 cls=0.1649 dist=0.0066 lr=5.0e-04 | ns22: 0.7517 | Av=0.9673 Am=0.9237 In=0.6138 Ma=0.5897 [173s] *ns22 *macro
+      step 200/600  loss=0.1660  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1660  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.1651  3.5 it/s  eta 0.0 min
+    Ep06: loss=0.1651 cls=0.1589 dist=0.0063 lr=5.0e-04 | ns22: 0.8526 | Av=0.9691 Am=0.9237 In=0.7604 Ma=0.8871 [173s] *ns22 *macro
+      step 200/600  loss=0.1643  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1636  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1633  3.5 it/s  eta 0.0 min
+    Ep07: loss=0.1633 cls=0.1573 dist=0.0060 lr=5.0e-04 | ns22: 0.8955 | Av=0.9698 Am=0.8898 In=0.8518 Ma=0.9483 [172s] *ns22 *macro
+      step 200/600  loss=0.1607  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1603  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1593  3.5 it/s  eta 0.0 min
+    Ep08: loss=0.1593 cls=0.1536 dist=0.0058 lr=5.0e-04 | ns22: 0.8865 | Av=0.9680 Am=0.8051 In=0.8712 Ma=0.8405 [172s] *macro
+      step 200/600  loss=0.1576  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1575  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1573  3.5 it/s  eta 0.0 min
+W1012 09:21:50.420000 62020 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1573 cls=0.1517 dist=0.0056 lr=5.0e-04 | ns22: 0.8780 | Av=0.9641 Am=0.8136 In=0.8333 Ma=0.9267 [173s] *macro
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=7.267e-04 (relative 5.10e-05)
+  Exported sed_distill_fold1.onnx (0.2 MB)
+
+============================================================
+FOLD 2
+============================================================
+  Streams: {'focal': 122017, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4047  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.3642  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.3351  3.5 it/s  eta 0.0 min
+    Ep00: loss=0.3351 cls=0.3237 dist=0.0114 lr=5.0e-04 | ns22: 0.5466 | Av=0.3167 Am=0.9594 In=0.5689 Ma=0.1983 [172s] *ns22 *macro
+      step 200/600  loss=0.2582  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.2461  3.6 it/s  eta 0.9 min
+      step 600/600  loss=0.2395  3.6 it/s  eta 0.0 min
+    Ep01: loss=0.2395 cls=0.2305 dist=0.0090 lr=5.0e-04 | ns22: 0.5529 | Av=0.4419 Am=0.8570 In=0.5421 Ma=0.4569 [170s] *ns22 *macro
+      step 200/600  loss=0.2107  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.2078  3.5 it/s  eta 1.0 min
+      step 600/600  loss=0.2045  3.5 it/s  eta 0.0 min
+    Ep02: loss=0.2045 cls=0.1964 dist=0.0081 lr=5.0e-04 | ns22: 0.6423 | Av=0.6546 Am=0.8891 In=0.4531 Ma=0.9741 [174s] *ns22 *macro
+      step 200/600  loss=0.1926  3.7 it/s  eta 1.8 min
+      step 400/600  loss=0.1895  3.6 it/s  eta 0.9 min
+      step 600/600  loss=0.1874  3.6 it/s  eta 0.0 min
+    Ep03: loss=0.1874 cls=0.1799 dist=0.0075 lr=5.0e-04 | ns22: 0.5967 | Av=0.3894 Am=0.8786 In=0.6328 Ma=0.8276 [170s]
+      step 200/600  loss=0.1778  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1765  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1751  3.5 it/s  eta 0.0 min
+    Ep04: loss=0.1751 cls=0.1681 dist=0.0070 lr=5.0e-04 | ns22: 0.7560 | Av=0.7326 Am=0.8253 In=0.7886 Ma=0.4569 [173s] *ns22 *macro
+      step 200/600  loss=0.1714  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1700  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1684  3.5 it/s  eta 0.0 min
+    Ep05: loss=0.1684 cls=0.1618 dist=0.0066 lr=5.0e-04 | ns22: 0.7611 | Av=0.6863 Am=0.9013 In=0.7945 Ma=0.4741 [172s] *ns22
+      step 200/600  loss=0.1645  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1646  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1636  3.5 it/s  eta 0.0 min
+    Ep06: loss=0.1636 cls=0.1573 dist=0.0063 lr=5.0e-04 | ns22: 0.8476 | Av=0.7989 Am=0.9030 In=0.8819 Ma=0.8707 [173s] *ns22 *macro
+      step 200/600  loss=0.1624  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1622  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1614  3.5 it/s  eta 0.0 min
+    Ep07: loss=0.1614 cls=0.1554 dist=0.0060 lr=5.0e-04 | ns22: 0.8462 | Av=0.7630 Am=0.8733 In=0.9028 Ma=0.9224 [173s]
+      step 200/600  loss=0.1602  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1590  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1587  3.5 it/s  eta 0.0 min
+    Ep08: loss=0.1587 cls=0.1530 dist=0.0058 lr=5.0e-04 | ns22: 0.8844 | Av=0.8051 Am=0.9623 In=0.9121 Ma=0.9052 [173s] *ns22
+      step 200/600  loss=0.1562  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.1566  3.5 it/s  eta 0.9 min
+      step 600/600  loss=0.1566  3.5 it/s  eta 0.0 min
+W1012 09:50:39.310000 62020 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1566 cls=0.1510 dist=0.0056 lr=5.0e-04 | ns22: 0.8777 | Av=0.8024 Am=0.9138 In=0.9197 Ma=0.9655 [173s] *macro
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=1.821e-03 (relative 1.53e-04)
+  Exported sed_distill_fold2.onnx (0.2 MB)
+Attention heatmaps -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/mean_freq_pool/attention_heatmaps.zip
+============================================================
+OOF RESULTS (best-ns22 checkpoints)
+============================================================
+  macro AUC (all):        0.8080
+  macro AUC (non-S22):    0.7466
+    Aves        : 0.7709
+    Amphibia    : 0.8568
+    Insecta     : 0.6548
+    Mammalia    : 0.7771
+Per-epoch curves -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/mean_freq_pool/curves.csv
+
+Per-epoch pooled non-S22 AUC:
+  Ep00: 0.4915
+  Ep01: 0.4869
+  Ep02: 0.5209
+  Ep03: 0.5523
+  Ep04: 0.6203
+  Ep05: 0.6467
+  Ep06: 0.6958
+  Ep07: 0.7049
+  Ep08: 0.7222
+  Ep09: 0.7466
+Skipping inference setup (MODE='train')
+Skipping ONNX loading (MODE='train')
+Skipping inference (MODE='train')
+Skipping submission (MODE='train')
+
+=== no_specaug: {'NUM_FREQ_MASKS': 0, 'NUM_TIME_MASKS': 0, 'FOLDS': [0, 1, 2]} ===
+Device: cuda
+GPU: NVIDIA L4
+Backbone: resnet18
+Train duration: 5s | Mel: 256 mels, n_fft=2048, hop=512
+Distillation: ON (alpha=1.0, cached Perch embeddings)
+Input: delta | Head: sed | Pseudo focal: True | Pseudo sc: True
+Batch: 64 | Epochs: 10 | Folds: [0, 1, 2]
+Focal audio cache: 35549 entries
+Soundscape cache: 792 windows
+Soundscape labels: 739/792 windows labeled, 3122 positives, 75 species
+
+Focal fold distribution:
+fold
+0    7110
+1    7110
+2    7110
+3    7110
+4    7109
+Name: count, dtype: int64
+
+Soundscape fold distribution:
+fold
+0    168
+1    156
+2    156
+3    156
+4    156
+Name: count, dtype: int64
+Focal 5 s windows: 152198
+Unlabelled soundscape windows (pseudo): 24000
+
+Upsampled 15 rare species (min=20): 152198 -> 152431 samples
+S22: 480, non-S22: 312
+OK Data loaded
+OK Model definitions ready
+SC MixUp pool: 739 labeled windows
+Focal secondary labels: 4372 files
+OK Data pipeline ready
+OK Training function ready
+
+============================================================
+FOLD 0
+============================================================
+  Streams: {'focal': 121805, 'sc': 624, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4378  3.1 it/s  eta 2.2 min
+      step 400/600  loss=0.3779  3.3 it/s  eta 1.0 min
+      step 600/600  loss=0.3442  3.4 it/s  eta 0.0 min
+    Ep00: loss=0.3442 cls=0.3329 dist=0.0112 lr=5.0e-04 | ns22: 0.5799 | Av=0.3923 Am=0.7261 In=0.6046 Ma=0.0929 [180s] *ns22 *macro
+      step 200/600  loss=0.2484  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.2400  4.7 it/s  eta 0.7 min
+      step 600/600  loss=0.2345  4.3 it/s  eta 0.0 min
+    Ep01: loss=0.2345 cls=0.2258 dist=0.0087 lr=5.0e-04 | ns22: 0.7835 | Av=0.7748 Am=0.8492 In=0.7923 Ma=0.2643 [141s] *ns22 *macro
+      step 200/600  loss=0.2125  3.5 it/s  eta 1.9 min
+      step 400/600  loss=0.2094  3.6 it/s  eta 0.9 min
+      step 600/600  loss=0.2063  3.6 it/s  eta 0.0 min
+    Ep02: loss=0.2063 cls=0.1984 dist=0.0079 lr=5.0e-04 | ns22: 0.6976 | Av=0.6732 Am=0.8645 In=0.6043 Ma=0.8571 [166s]
+      step 200/600  loss=0.1948  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1936  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1912  5.4 it/s  eta 0.0 min
+    Ep03: loss=0.1912 cls=0.1839 dist=0.0073 lr=5.0e-04 | ns22: 0.7582 | Av=0.7076 Am=0.8332 In=0.8301 Ma=0.1071 [113s] *macro
+      step 200/600  loss=0.1837  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1812  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1798  5.4 it/s  eta 0.0 min
+    Ep04: loss=0.1798 cls=0.1730 dist=0.0068 lr=5.0e-04 | ns22: 0.7589 | Av=0.7769 Am=0.8453 In=0.8283 Ma=0.0071 [113s] *macro
+      step 200/600  loss=0.1763  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1751  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1739  5.4 it/s  eta 0.0 min
+    Ep05: loss=0.1739 cls=0.1675 dist=0.0064 lr=5.0e-04 | ns22: 0.7770 | Av=0.8889 Am=0.8751 In=0.7803 Ma=0.2143 [113s] *macro
+      step 200/600  loss=0.1704  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1702  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1700  5.4 it/s  eta 0.0 min
+    Ep06: loss=0.1700 cls=0.1639 dist=0.0061 lr=5.0e-04 | ns22: 0.7549 | Av=0.9839 Am=0.8489 In=0.7146 Ma=0.2357 [113s]
+      step 200/600  loss=0.1695  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1691  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1686  5.4 it/s  eta 0.0 min
+    Ep07: loss=0.1686 cls=0.1628 dist=0.0058 lr=5.0e-04 | ns22: 0.7669 | Av=0.9605 Am=0.9103 In=0.7218 Ma=0.1214 [113s]
+      step 200/600  loss=0.1668  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1666  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1659  5.4 it/s  eta 0.0 min
+    Ep08: loss=0.1659 cls=0.1603 dist=0.0056 lr=5.0e-04 | ns22: 0.8016 | Av=0.8534 Am=0.9187 In=0.7753 Ma=0.5571 [113s] *ns22 *macro
+      step 200/600  loss=0.1624  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1630  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1628  5.4 it/s  eta 0.0 min
+W1012 10:12:44.533000 78776 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1628 cls=0.1574 dist=0.0054 lr=5.0e-04 | ns22: 0.7993 | Av=0.9481 Am=0.8961 In=0.7583 Ma=0.4857 [113s]
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=1.315e-03 (relative 1.58e-04)
+  Exported sed_distill_fold0.onnx (0.2 MB)
+
+============================================================
+FOLD 1
+============================================================
+  Streams: {'focal': 121955, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4243  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.3678  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.3350  5.4 it/s  eta 0.0 min
+    Ep00: loss=0.3350 cls=0.3237 dist=0.0113 lr=5.0e-04 | ns22: 0.4676 | Av=0.5372 Am=0.4808 In=0.4182 Ma=0.4009 [114s] *ns22 *macro
+      step 200/600  loss=0.2443  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.2383  6.1 it/s  eta 0.5 min
+      step 600/600  loss=0.2335  5.8 it/s  eta 0.0 min
+    Ep01: loss=0.2335 cls=0.2247 dist=0.0088 lr=5.0e-04 | ns22: 0.6391 | Av=0.2768 Am=0.9915 In=0.7883 Ma=0.6092 [104s] *ns22 *macro
+      step 200/600  loss=0.2127  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.2095  5.5 it/s  eta 0.6 min
+      step 600/600  loss=0.2054  5.4 it/s  eta 0.0 min
+    Ep02: loss=0.2054 cls=0.1976 dist=0.0079 lr=5.0e-04 | ns22: 0.6830 | Av=0.7047 Am=0.9746 In=0.6413 Ma=0.5107 [112s] *ns22 *macro
+      step 200/600  loss=0.1925  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1897  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1871  5.4 it/s  eta 0.0 min
+    Ep03: loss=0.1871 cls=0.1798 dist=0.0073 lr=5.0e-04 | ns22: 0.7563 | Av=0.8660 Am=0.8644 In=0.6902 Ma=0.7347 [113s] *ns22 *macro
+      step 200/600  loss=0.1805  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1793  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1783  5.4 it/s  eta 0.0 min
+    Ep04: loss=0.1783 cls=0.1715 dist=0.0068 lr=5.0e-04 | ns22: 0.8544 | Av=0.9197 Am=0.9068 In=0.8397 Ma=0.8103 [113s] *ns22 *macro
+      step 200/600  loss=0.1747  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1736  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1729  5.4 it/s  eta 0.0 min
+    Ep05: loss=0.1729 cls=0.1665 dist=0.0064 lr=5.0e-04 | ns22: 0.8554 | Av=0.9544 Am=0.8136 In=0.8447 Ma=0.7629 [113s] *ns22
+      step 200/600  loss=0.1707  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1709  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1703  5.4 it/s  eta 0.0 min
+    Ep06: loss=0.1703 cls=0.1642 dist=0.0061 lr=5.0e-04 | ns22: 0.8140 | Av=0.9501 Am=0.9153 In=0.7491 Ma=0.7233 [113s]
+      step 200/600  loss=0.1695  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1687  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1679  5.4 it/s  eta 0.0 min
+    Ep07: loss=0.1679 cls=0.1621 dist=0.0058 lr=5.0e-04 | ns22: 0.8515 | Av=0.9579 Am=0.8814 In=0.7883 Ma=0.8531 [113s]
+      step 200/600  loss=0.1661  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1656  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1645  5.4 it/s  eta 0.0 min
+    Ep08: loss=0.1645 cls=0.1589 dist=0.0056 lr=5.0e-04 | ns22: 0.8517 | Av=0.9622 Am=0.8136 In=0.7935 Ma=0.8922 [113s]
+      step 200/600  loss=0.1622  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1621  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.1624  5.4 it/s  eta 0.0 min
+W1012 10:31:31.795000 78776 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1624 cls=0.1569 dist=0.0054 lr=5.0e-04 | ns22: 0.8852 | Av=0.9661 Am=0.9068 In=0.8226 Ma=0.9181 [113s] *ns22 *macro
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=7.086e-04 (relative 6.41e-05)
+  Exported sed_distill_fold1.onnx (0.2 MB)
+
+============================================================
+FOLD 2
+============================================================
+  Streams: {'focal': 122017, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.4269  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.3665  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.3341  5.4 it/s  eta 0.0 min
+    Ep00: loss=0.3341 cls=0.3229 dist=0.0112 lr=5.0e-04 | ns22: 0.5479 | Av=0.2568 Am=0.8447 In=0.6594 Ma=0.5172 [113s] *ns22 *macro
+      step 200/600  loss=0.2436  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.2361  5.8 it/s  eta 0.6 min
+      step 600/600  loss=0.2302  5.7 it/s  eta 0.0 min
+    Ep01: loss=0.2302 cls=0.2215 dist=0.0087 lr=5.0e-04 | ns22: 0.6691 | Av=0.4495 Am=0.7809 In=0.8275 Ma=0.4655 [107s] *ns22 *macro
+      step 200/600  loss=0.2104  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.2074  5.4 it/s  eta 0.6 min
+      step 600/600  loss=0.2037  5.4 it/s  eta 0.0 min
+    Ep02: loss=0.2037 cls=0.1959 dist=0.0078 lr=5.0e-04 | ns22: 0.6650 | Av=0.5434 Am=0.8029 In=0.7485 Ma=0.3793 [113s] *macro
+      step 200/600  loss=0.1913  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1893  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1878  5.4 it/s  eta 0.0 min
+    Ep03: loss=0.1878 cls=0.1806 dist=0.0072 lr=5.0e-04 | ns22: 0.7191 | Av=0.7722 Am=0.8547 In=0.6398 Ma=0.6552 [113s] *ns22 *macro
+      step 200/600  loss=0.1826  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1806  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1797  5.4 it/s  eta 0.0 min
+    Ep04: loss=0.1797 cls=0.1729 dist=0.0068 lr=5.0e-04 | ns22: 0.7537 | Av=0.7131 Am=0.8916 In=0.7666 Ma=0.4569 [113s] *ns22 *macro
+      step 200/600  loss=0.1767  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1751  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1742  5.4 it/s  eta 0.0 min
+    Ep05: loss=0.1742 cls=0.1678 dist=0.0064 lr=5.0e-04 | ns22: 0.7633 | Av=0.7692 Am=0.8908 In=0.7331 Ma=0.5431 [113s] *ns22 *macro
+      step 200/600  loss=0.1707  5.3 it/s  eta 1.3 min
+      step 400/600  loss=0.1710  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1706  5.4 it/s  eta 0.0 min
+    Ep06: loss=0.1706 cls=0.1645 dist=0.0061 lr=5.0e-04 | ns22: 0.8081 | Av=0.7992 Am=0.8807 In=0.7955 Ma=0.6897 [113s] *ns22 *macro
+      step 200/600  loss=0.1698  5.2 it/s  eta 1.3 min
+      step 400/600  loss=0.1688  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1680  5.4 it/s  eta 0.0 min
+    Ep07: loss=0.1680 cls=0.1622 dist=0.0058 lr=5.0e-04 | ns22: 0.8428 | Av=0.8087 Am=0.8962 In=0.8465 Ma=0.7845 [113s] *ns22 *macro
+      step 200/600  loss=0.1670  5.2 it/s  eta 1.3 min
+      step 400/600  loss=0.1672  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1663  5.4 it/s  eta 0.0 min
+    Ep08: loss=0.1663 cls=0.1607 dist=0.0056 lr=5.0e-04 | ns22: 0.8582 | Av=0.7877 Am=0.9226 In=0.8734 Ma=0.9655 [113s] *ns22 *macro
+      step 200/600  loss=0.1635  5.2 it/s  eta 1.3 min
+      step 400/600  loss=0.1643  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1638  5.4 it/s  eta 0.0 min
+W1012 10:50:21.153000 78776 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1638 cls=0.1584 dist=0.0054 lr=5.0e-04 | ns22: 0.8748 | Av=0.8295 Am=0.9449 In=0.8662 Ma=0.9828 [113s] *ns22
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=1.021e-03 (relative 9.30e-05)
+  Exported sed_distill_fold2.onnx (0.2 MB)
+Attention heatmaps -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/no_specaug/attention_heatmaps.zip
+============================================================
+OOF RESULTS (best-ns22 checkpoints)
+============================================================
+  macro AUC (all):        0.8051
+  macro AUC (non-S22):    0.7135
+    Aves        : 0.7616
+    Amphibia    : 0.8277
+    Insecta     : 0.6090
+    Mammalia    : 0.6939
+Per-epoch curves -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/no_specaug/curves.csv
+
+Per-epoch pooled non-S22 AUC:
+  Ep00: 0.4936
+  Ep01: 0.5308
+  Ep02: 0.5071
+  Ep03: 0.5987
+  Ep04: 0.6402
+  Ep05: 0.6822
+  Ep06: 0.6786
+  Ep07: 0.7024
+  Ep08: 0.7096
+  Ep09: 0.7096
+Skipping inference setup (MODE='train')
+Skipping ONNX loading (MODE='train')
+Skipping inference (MODE='train')
+Skipping submission (MODE='train')
+
+=== distill_no_stopgrad: {'STOP_GRAD_CLS': False, 'FOLDS': [0, 1, 2]} ===
+Device: cuda
+GPU: NVIDIA L4
+Backbone: resnet18
+Train duration: 5s | Mel: 256 mels, n_fft=2048, hop=512
+Distillation: ON (alpha=1.0, cached Perch embeddings)
+Input: delta | Head: sed | Pseudo focal: True | Pseudo sc: True
+Batch: 64 | Epochs: 10 | Folds: [0, 1, 2]
+Focal audio cache: 35549 entries
+Soundscape cache: 792 windows
+Soundscape labels: 739/792 windows labeled, 3122 positives, 75 species
+
+Focal fold distribution:
+fold
+0    7110
+1    7110
+2    7110
+3    7110
+4    7109
+Name: count, dtype: int64
+
+Soundscape fold distribution:
+fold
+0    168
+1    156
+2    156
+3    156
+4    156
+Name: count, dtype: int64
+Focal 5 s windows: 152198
+Unlabelled soundscape windows (pseudo): 24000
+
+Upsampled 15 rare species (min=20): 152198 -> 152431 samples
+S22: 480, non-S22: 312
+OK Data loaded
+OK Model definitions ready
+SC MixUp pool: 739 labeled windows
+Focal secondary labels: 4372 files
+OK Data pipeline ready
+OK Training function ready
+
+============================================================
+FOLD 0
+============================================================
+  Streams: {'focal': 121805, 'sc': 624, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.2591  4.2 it/s  eta 1.6 min
+      step 400/600  loss=0.2147  4.6 it/s  eta 0.7 min
+      step 600/600  loss=0.1990  5.6 it/s  eta 0.0 min
+    Ep00: loss=0.1990 cls=0.1864 dist=0.0126 lr=5.0e-04 | ns22: 0.4853 | Av=0.4046 Am=0.6173 In=0.5006 Ma=0.0857 [109s] *ns22 *macro
+      step 200/600  loss=0.1598  10.8 it/s  eta 0.6 min
+      step 400/600  loss=0.1571  10.5 it/s  eta 0.3 min
+      step 600/600  loss=0.1559  7.8 it/s  eta 0.0 min
+    Ep01: loss=0.1559 cls=0.1459 dist=0.0100 lr=5.0e-04 | ns22: 0.7521 | Av=0.6528 Am=0.7285 In=0.8801 Ma=0.0857 [78s] *ns22 *macro
+      step 200/600  loss=0.1507  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1496  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1485  5.3 it/s  eta 0.0 min
+    Ep02: loss=0.1485 cls=0.1389 dist=0.0096 lr=5.0e-04 | ns22: 0.8030 | Av=0.9553 Am=0.7330 In=0.9063 Ma=0.0929 [115s] *ns22 *macro
+      step 200/600  loss=0.1443  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1454  5.1 it/s  eta 0.7 min
+      step 600/600  loss=0.1450  5.2 it/s  eta 0.0 min
+    Ep03: loss=0.1450 cls=0.1356 dist=0.0094 lr=5.0e-04 | ns22: 0.7555 | Av=0.6039 Am=0.7194 In=0.9209 Ma=0.1571 [117s] *macro
+      step 200/600  loss=0.1422  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1415  5.1 it/s  eta 0.7 min
+      step 600/600  loss=0.1407  5.2 it/s  eta 0.0 min
+    Ep04: loss=0.1407 cls=0.1316 dist=0.0091 lr=5.0e-04 | ns22: 0.7308 | Av=0.5032 Am=0.7845 In=0.8681 Ma=0.1714 [117s] *macro
+      step 200/600  loss=0.1401  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1401  5.1 it/s  eta 0.6 min
+      step 600/600  loss=0.1402  5.2 it/s  eta 0.0 min
+    Ep05: loss=0.1402 cls=0.1312 dist=0.0090 lr=5.0e-04 | ns22: 0.7602 | Av=0.6869 Am=0.7837 In=0.8722 Ma=0.0929 [117s]
+      step 200/600  loss=0.1383  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1387  5.1 it/s  eta 0.6 min
+      step 600/600  loss=0.1390  5.2 it/s  eta 0.0 min
+    Ep06: loss=0.1390 cls=0.1301 dist=0.0088 lr=5.0e-04 | ns22: 0.7841 | Av=0.8225 Am=0.7981 In=0.8575 Ma=0.0714 [117s] *macro
+      step 200/600  loss=0.1397  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1381  5.1 it/s  eta 0.6 min
+      step 600/600  loss=0.1376  5.2 it/s  eta 0.0 min
+    Ep07: loss=0.1376 cls=0.1289 dist=0.0087 lr=5.0e-04 | ns22: 0.6519 | Av=0.2535 Am=0.7193 In=0.7718 Ma=0.0929 [117s]
+      step 200/600  loss=0.1355  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1348  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1343  5.2 it/s  eta 0.0 min
+    Ep08: loss=0.1343 cls=0.1258 dist=0.0085 lr=5.0e-04 | ns22: 0.7338 | Av=0.6222 Am=0.7822 In=0.8524 Ma=0.1643 [117s]
+      step 200/600  loss=0.1332  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1339  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1339  5.2 it/s  eta 0.0 min
+W1012 11:09:47.017000 90469 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1339 cls=0.1256 dist=0.0083 lr=5.0e-04 | ns22: 0.7228 | Av=0.3954 Am=0.8280 In=0.8003 Ma=0.5143 [117s] *macro
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=9.332e-04 (relative 9.83e-05)
+  Exported sed_distill_fold0.onnx (0.2 MB)
+
+============================================================
+FOLD 1
+============================================================
+  Streams: {'focal': 121955, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.2617  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.2169  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1989  5.2 it/s  eta 0.0 min
+    Ep00: loss=0.1989 cls=0.1864 dist=0.0125 lr=5.0e-04 | ns22: 0.6813 | Av=0.9169 Am=0.9957 In=0.5273 Ma=0.5180 [118s] *ns22 *macro
+      step 200/600  loss=0.1603  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1576  5.8 it/s  eta 0.6 min
+      step 600/600  loss=0.1551  5.6 it/s  eta 0.0 min
+    Ep01: loss=0.1551 cls=0.1451 dist=0.0100 lr=5.0e-04 | ns22: 0.8356 | Av=0.9221 Am=0.8155 In=0.8830 Ma=0.5784 [109s] *ns22 *macro
+      step 200/600  loss=0.1494  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1479  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1469  5.3 it/s  eta 0.0 min
+    Ep02: loss=0.1469 cls=0.1373 dist=0.0096 lr=5.0e-04 | ns22: 0.8339 | Av=0.9415 Am=0.6910 In=0.8857 Ma=0.5193 [115s] *macro
+      step 200/600  loss=0.1434  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1430  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1428  5.2 it/s  eta 0.0 min
+    Ep03: loss=0.1428 cls=0.1334 dist=0.0094 lr=5.0e-04 | ns22: 0.8007 | Av=0.8630 Am=0.8546 In=0.8410 Ma=0.4576 [116s] *macro
+      step 200/600  loss=0.1415  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1424  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1416  5.2 it/s  eta 0.0 min
+    Ep04: loss=0.1416 cls=0.1324 dist=0.0092 lr=5.0e-04 | ns22: 0.7775 | Av=0.9531 Am=0.6341 In=0.7305 Ma=0.6049 [116s]
+      step 200/600  loss=0.1399  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1388  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1386  5.2 it/s  eta 0.0 min
+    Ep05: loss=0.1386 cls=0.1297 dist=0.0089 lr=5.0e-04 | ns22: 0.8389 | Av=0.9493 Am=0.6672 In=0.8717 Ma=0.5977 [117s] *ns22 *macro
+      step 200/600  loss=0.1386  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1376  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1372  5.2 it/s  eta 0.0 min
+    Ep06: loss=0.1372 cls=0.1284 dist=0.0087 lr=5.0e-04 | ns22: 0.8508 | Av=0.9529 Am=0.5117 In=0.9012 Ma=0.6616 [117s] *ns22 *macro
+      step 200/600  loss=0.1382  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1365  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1359  5.2 it/s  eta 0.0 min
+    Ep07: loss=0.1359 cls=0.1273 dist=0.0086 lr=5.0e-04 | ns22: 0.8545 | Av=0.9466 Am=0.7293 In=0.9159 Ma=0.4596 [117s] *ns22
+      step 200/600  loss=0.1347  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1349  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1343  5.2 it/s  eta 0.0 min
+    Ep08: loss=0.1343 cls=0.1259 dist=0.0084 lr=5.0e-04 | ns22: 0.8507 | Av=0.9524 Am=0.9321 In=0.8483 Ma=0.5052 [117s]
+      step 200/600  loss=0.1341  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1335  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1336  5.2 it/s  eta 0.0 min
+W1012 11:29:12.043000 90469 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1336 cls=0.1253 dist=0.0083 lr=5.0e-04 | ns22: 0.8510 | Av=0.9609 Am=0.9486 In=0.8235 Ma=0.5379 [116s]
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=1.024e-03 (relative 8.82e-05)
+  Exported sed_distill_fold1.onnx (0.2 MB)
+
+============================================================
+FOLD 2
+============================================================
+  Streams: {'focal': 122017, 'sc': 636, 'pseudo_sc': 24000}  steps/ep: 600
+      step 200/600  loss=0.2580  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.2156  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1981  5.2 it/s  eta 0.0 min
+    Ep00: loss=0.1981 cls=0.1856 dist=0.0124 lr=5.0e-04 | ns22: 0.5509 | Av=0.5690 Am=0.8157 In=0.4486 Ma=0.1034 [117s] *ns22 *macro
+      step 200/600  loss=0.1567  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1556  5.7 it/s  eta 0.6 min
+      step 600/600  loss=0.1538  5.5 it/s  eta 0.0 min
+    Ep01: loss=0.1538 cls=0.1438 dist=0.0100 lr=5.0e-04 | ns22: 0.6636 | Av=0.5249 Am=0.8198 In=0.7777 Ma=0.0948 [111s] *ns22 *macro
+      step 200/600  loss=0.1490  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1482  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1472  5.2 it/s  eta 0.0 min
+    Ep02: loss=0.1472 cls=0.1376 dist=0.0096 lr=5.0e-04 | ns22: 0.7030 | Av=0.7307 Am=0.6852 In=0.7696 Ma=0.1379 [116s] *ns22 *macro
+      step 200/600  loss=0.1444  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1431  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1427  5.2 it/s  eta 0.0 min
+    Ep03: loss=0.1427 cls=0.1334 dist=0.0093 lr=5.0e-04 | ns22: 0.7063 | Av=0.6540 Am=0.9664 In=0.6786 Ma=0.3276 [116s] *ns22 *macro
+      step 200/600  loss=0.1408  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1410  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1401  5.2 it/s  eta 0.0 min
+    Ep04: loss=0.1401 cls=0.1310 dist=0.0091 lr=5.0e-04 | ns22: 0.7378 | Av=0.6447 Am=0.9566 In=0.7903 Ma=0.0776 [117s] *ns22 *macro
+      step 200/600  loss=0.1398  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1405  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1394  5.2 it/s  eta 0.0 min
+    Ep05: loss=0.1394 cls=0.1305 dist=0.0089 lr=5.0e-04 | ns22: 0.7754 | Av=0.7881 Am=0.8467 In=0.7928 Ma=0.2759 [117s] *ns22 *macro
+      step 200/600  loss=0.1358  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1369  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1362  5.2 it/s  eta 0.0 min
+    Ep06: loss=0.1362 cls=0.1275 dist=0.0087 lr=5.0e-04 | ns22: 0.7936 | Av=0.8017 Am=0.8230 In=0.8305 Ma=0.3621 [116s] *ns22 *macro
+      step 200/600  loss=0.1356  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1355  5.3 it/s  eta 0.6 min
+      step 600/600  loss=0.1351  5.2 it/s  eta 0.0 min
+    Ep07: loss=0.1351 cls=0.1265 dist=0.0086 lr=5.0e-04 | ns22: 0.7780 | Av=0.6058 Am=0.9210 In=0.8882 Ma=0.5431 [116s]
+      step 200/600  loss=0.1357  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1352  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1348  5.2 it/s  eta 0.0 min
+    Ep08: loss=0.1348 cls=0.1263 dist=0.0084 lr=5.0e-04 | ns22: 0.7867 | Av=0.8298 Am=0.7712 In=0.7174 Ma=0.9397 [116s]
+      step 200/600  loss=0.1347  5.1 it/s  eta 1.3 min
+      step 400/600  loss=0.1345  5.2 it/s  eta 0.6 min
+      step 600/600  loss=0.1341  5.2 it/s  eta 0.0 min
+W1012 11:48:36.732000 90469 torch/onnx/_internal/exporter/_compat.py:133] Setting ONNX exporter to use operator set version 18 because the requested opset_version 17 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 17).
+Failed to convert the model to the target version 17 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 137, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+        func=_partial_convert_version, model=model
+    )
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnxscript/version_converter/__init__.py", line 132, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        proto, target_version=self.target_version
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/sauravbellam/venv/lib/python3.13/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+RuntimeError: /project/onnx/version_converter/adapters/axes_input_to_attribute.h:55: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+    Ep09: loss=0.1341 cls=0.1258 dist=0.0083 lr=5.0e-04 | ns22: 0.7943 | Av=0.6802 Am=0.8665 In=0.8691 Ma=0.6724 [117s] *ns22 *macro
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SEDExportWrapper([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+  ONNX verify: max|diff|=8.988e-04 (relative 5.77e-05)
+  Exported sed_distill_fold2.onnx (0.2 MB)
+Attention heatmaps -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/distill_no_stopgrad/attention_heatmaps.zip
+============================================================
+OOF RESULTS (best-ns22 checkpoints)
+============================================================
+  macro AUC (all):        0.7985
+  macro AUC (non-S22):    0.6970
+    Aves        : 0.6709
+    Amphibia    : 0.7802
+    Insecta     : 0.6797
+    Mammalia    : 0.4890
+Per-epoch curves -> /home/sauravbellam/cnn-species-detection-model/runs/ablations/distill_no_stopgrad/curves.csv
+
+Per-epoch pooled non-S22 AUC:
+  Ep00: 0.4652
+  Ep01: 0.6401
+  Ep02: 0.6734
+  Ep03: 0.6796
+  Ep04: 0.6550
+  Ep05: 0.6922
+  Ep06: 0.6962
+  Ep07: 0.6643
+  Ep08: 0.6862
+  Ep09: 0.7087
+Skipping inference setup (MODE='train')
+Skipping ONNX loading (MODE='train')
+Skipping inference (MODE='train')
+Skipping submission (MODE='train')

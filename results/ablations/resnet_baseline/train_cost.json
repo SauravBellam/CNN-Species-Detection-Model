@@ -1,0 +1,16 @@
+{
+ "wall_seconds": 4941.5029463768005,
+ "fold_seconds": {
+  "0": 1546.3387851715088,
+  "1": 1686.6311898231506,
+  "2": 1689.7292511463165
+ },
+ "mean_epoch_seconds": 163.89301821390788,
+ "epochs": 10,
+ "folds": 3,
+ "batch": 64,
+ "concurrent_runs": 3,
+ "gpu_hours_est": 0.457546569108963,
+ "peak_gpu_mem_gb": 2.186942464,
+ "gpu": "NVIDIA L4"
+}

@@ -1,0 +1,19 @@
+{
+ "kind": "sed",
+ "HEAD": "sed",
+ "STACK_MODE": "single",
+ "FREQ_POOL": "gem",
+ "TIME_POOL": "att",
+ "N_MELS": 256,
+ "N_FFT": 2048,
+ "HOP_LENGTH": 512,
+ "NUM_CLASSES": 234,
+ "USE_PERCH_DISTILL": true,
+ "EPOCHS": 10,
+ "BATCH": 64,
+ "FOLDS": [
+  0,
+  1,
+  2
+ ]
+}

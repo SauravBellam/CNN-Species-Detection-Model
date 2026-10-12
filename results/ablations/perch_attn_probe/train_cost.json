@@ -1,0 +1,10 @@
+{
+ "wall_seconds": 1688.69353890419,
+ "epochs": 30,
+ "folds": 3,
+ "batch": 256,
+ "concurrent_runs": 3,
+ "gpu_hours_est": 0.15636051286149907,
+ "peak_gpu_mem_gb": 0.143164928,
+ "note": "excludes the one-off Perch pass in pseudo_label.py (see pseudo_label_cost.json)"
+}
