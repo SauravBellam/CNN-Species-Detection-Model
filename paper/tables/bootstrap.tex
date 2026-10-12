@@ -1,0 +1,26 @@
+\begin{table}[H]\centering\small
+\caption{File-level bootstrap (2{,}000 resamples of the 16 evaluation files) of pooled macro ROC-AUC. The 95\% interval is the 2.5--97.5 percentile range. $\Delta$ is the paired difference to \texttt{full} on the same resamples; $P(\Delta>0)$ is the fraction of resamples in which the variant beats \texttt{full}. Intervals whose $\Delta$ range excludes 0 are marked $\ast$.}
+\label{tab:boot}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrcrcr}
+\toprule
+Variant & Macro AUC & 95\% CI & $\Delta$ vs full & 95\% CI of $\Delta$ & $P(\Delta>0)$ \\
+\midrule
+\texttt{no\_pseudo\_sc} & 0.7742 & [0.703, 0.872] & +0.0600 & [$-$0.0009, +0.1513] & 0.974 \\
+\texttt{resnet\_baseline} & 0.7571 & [0.665, 0.858] & +0.0429 & [$-$0.0114, +0.1098] & 0.943 \\
+\texttt{mean\_freq\_pool} & 0.7466 & [0.662, 0.849] & +0.0325 & [+0.0018, +0.0735]$\ast$ & 0.979 \\
+\texttt{no\_distill} & 0.7292 & [0.632, 0.824] & +0.0150 & [$-$0.0408, +0.0794] & 0.675 \\
+\texttt{single\_channel\_mel} & 0.7230 & [0.637, 0.826] & +0.0088 & [$-$0.0281, +0.0527] & 0.690 \\
+\texttt{full} & 0.7142 & [0.622, 0.820] & -- & -- & -- \\
+\texttt{no\_specaug} & 0.7135 & [0.626, 0.808] & $-$0.0007 & [$-$0.0413, +0.0456] & 0.468 \\
+\texttt{perch\_attn\_probe} & 0.7109 & [0.622, 0.798] & $-$0.0032 & [$-$0.0945, +0.0737] & 0.408 \\
+\texttt{no\_pseudo\_focal} & 0.7049 & [0.604, 0.814] & $-$0.0093 & [$-$0.0481, +0.0281] & 0.274 \\
+\texttt{mean\_time\_pool} & 0.6984 & [0.606, 0.811] & $-$0.0158 & [$-$0.0414, +0.0196] & 0.230 \\
+\texttt{distill\_no\_stopgrad} & 0.6970 & [0.580, 0.798] & $-$0.0172 & [$-$0.0886, +0.0389] & 0.249 \\
+\texttt{no\_rare\_upsample} & 0.6896 & [0.600, 0.793] & $-$0.0245 & [$-$0.0573, +0.0213] & 0.133 \\
+\texttt{no\_soundscape\_data} & 0.6656 & [0.582, 0.723] & $-$0.0486 & [$-$0.1919, +0.0503] & 0.151 \\
+\texttt{no\_mixup} & 0.6630 & [0.559, 0.764] & $-$0.0512 & [$-$0.1113, $-$0.0144]$\ast$ & 0.006 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}

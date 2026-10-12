@@ -1,0 +1,39 @@
+\begin{table}[H]\centering\small
+\caption{Ranking and detection metrics for every variant on the pooled out-of-fold non-S22 soundscape windows (higher is better; best per column in bold).}\label{tab:main_rank}
+\setlength{\tabcolsep}{3.5pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrrr}
+\toprule
+Variant & Macro ROC-AUC & Macro PR-AUC & LRAP & Macro F1 & AUC rare & AUC common \\
+\midrule
+\multicolumn{7}{l}{\emph{Baselines}} \\
+\texttt{resnet\_baseline} & 0.7571 & 0.3618 & 0.2772 & \textbf{0.2522} & 0.7104 & 0.8387 \\
+\texttt{perch\_attn\_probe} & 0.7109 & 0.3991 & 0.1390 & 0.1654 & 0.5778 & \textbf{0.9042} \\
+\midrule
+\multicolumn{7}{l}{\emph{Full model}} \\
+\texttt{full} & 0.7142 & 0.3634 & 0.2209 & 0.1337 & 0.6679 & 0.7654 \\
+\midrule
+\multicolumn{7}{l}{\emph{One-change training ablations}} \\
+\texttt{no\_distill} & 0.7292 & 0.3308 & 0.1820 & 0.1013 & 0.7004 & 0.7697 \\
+\texttt{distill\_no\_stopgrad} & 0.6970 & 0.3738 & 0.2238 & 0.2349 & 0.6823 & 0.6460 \\
+\texttt{no\_pseudo\_focal} & 0.7049 & 0.3675 & 0.1887 & 0.1261 & 0.6876 & 0.7004 \\
+\texttt{no\_pseudo\_sc} & 0.7742 & \textbf{0.4321} & \textbf{0.4770} & 0.2396 & 0.7417 & 0.8174 \\
+\texttt{single\_channel\_mel} & 0.7230 & 0.3744 & 0.1862 & 0.1446 & 0.6841 & 0.7714 \\
+\texttt{mean\_freq\_pool} & 0.7466 & 0.4048 & 0.2897 & 0.2178 & 0.7165 & 0.7825 \\
+\texttt{mean\_time\_pool} & 0.6984 & 0.3687 & 0.2101 & 0.1260 & 0.6651 & 0.7277 \\
+\texttt{no\_mixup} & 0.6630 & 0.3396 & 0.1596 & 0.0866 & 0.6270 & 0.6813 \\
+\texttt{no\_soundscape\_data} & 0.6656 & 0.1874 & 0.0589 & 0.0000 & 0.5822 & 0.8675 \\
+\texttt{no\_specaug} & 0.7135 & 0.3607 & 0.2789 & 0.1692 & 0.6685 & 0.7538 \\
+\texttt{no\_rare\_upsample} & 0.6896 & 0.3719 & 0.1956 & 0.1331 & 0.6636 & 0.6784 \\
+\midrule
+\multicolumn{7}{l}{\emph{Post-hoc variants of \texttt{full} (no retraining)}} \\
+\texttt{head\_clip\_only} & 0.7050 & 0.3546 & 0.2267 & 0.0917 & 0.6703 & 0.7239 \\
+\texttt{head\_framemax\_only} & 0.7145 & 0.3642 & 0.2141 & 0.1363 & 0.6620 & 0.7810 \\
+\texttt{full+gauss\_smooth} & 0.7206 & 0.3940 & 0.2185 & 0.1221 & 0.6772 & 0.7622 \\
+\texttt{full+tax\_smooth} & 0.7632 & 0.3743 & 0.2092 & 0.1046 & 0.7308 & 0.7631 \\
+\texttt{full+site\_hour\_prior} & 0.7346 & 0.3608 & 0.3964 & 0.1575 & 0.6962 & 0.7432 \\
+\texttt{full+all\_posthoc} & \textbf{0.8407} & 0.4159 & 0.4082 & 0.1164 & \textbf{0.8335} & 0.7987 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}

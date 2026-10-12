@@ -1,0 +1,53 @@
+\begingroup\footnotesize
+\begin{longtable}{p{3.1cm}p{3.3cm}p{1.4cm}rp{2.9cm}p{1.8cm}}
+\caption{Pre-registered hypotheses (one per row, from \texttt{configs.py}) against the observed change relative to \texttt{full}. ``Biggest-$\Delta$'' is the metric that moved most in absolute terms. The rationale written before the runs is given in italics.}\label{tab:hyp}\\
+\toprule Variant & Metric & Predicted & $\Delta$ vs full & Biggest-$\Delta$ & Verdict \\ \midrule
+\endfirsthead
+\toprule Variant & Metric & Predicted & $\Delta$ vs full & Biggest-$\Delta$ & Verdict \\ \midrule
+\endhead
+\bottomrule
+\endlastfoot
+\texttt{resnet\_baseline} & \texttt{lrap} & drop & +0.0563 & \texttt{auc\_Mammalia} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{A plain pooled ResNet loses the time axis, so it ranks species within a window worse (LRAP) and is less calibrated than the attention SED head at the same cost.}} \\[2pt]
+\texttt{resnet\_baseline} & \texttt{ece} & rise & +0.0419 & \texttt{auc\_Mammalia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Without distillation or frame-level heads the baseline overfits the small label set.}} \\[2pt]
+\texttt{perch\_attn\_probe} & \texttt{auc\_rare} & rise & $-$0.0901 & \texttt{auc\_Mammalia} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{Perch has seen far more data; the frozen teacher should beat the student on rare species, at many times the inference cost (see benchmark\_cost.py).}} \\[2pt]
+\texttt{no\_pseudo\_focal} & \texttt{pr\_auc\_macro} & drop & +0.0040 & \texttt{auc\_Mammalia} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{Clip-level labels mark every 5 s window as positive even when the bird is silent; Perch-localised targets remove those false positives, mainly helping precision (PR-AUC).}} \\[2pt]
+\texttt{no\_pseudo\_sc} & \texttt{auc\_soundscape\_macro} & drop & +0.0600 & \texttt{auc\_Mammalia} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{Unlabelled soundscapes are in-domain; their pseudo-labels should help soundscape AUC and calibration most.}} \\[2pt]
+\texttt{single\_channel\_mel} & \texttt{auc\_Insecta} & drop & $-$0.0019 & \texttt{auc\_Mammalia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Delta channels encode modulation / onsets; insects and frogs are defined by repetition rate, so dropping them should hurt non-bird taxa more.}} \\[2pt]
+\texttt{no\_distill} & \texttt{auc\_rare} & drop & +0.0325 & \texttt{auc\_Amphibia} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{Perch embeddings carry knowledge about species with few focal clips.}} \\[2pt]
+\texttt{no\_distill} & \texttt{ece} & rise & +0.0413 & \texttt{auc\_Amphibia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Without the teacher regulariser the student overfits, giving worse calibration.}} \\[2pt]
+\texttt{distill\_no\_stopgrad} & \texttt{auc\_soundscape\_macro} & ~same & $-$0.0172 & \texttt{auc\_common} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{Letting the classification loss update the backbone should matter little.}} \\[2pt]
+\texttt{mean\_freq\_pool} & \texttt{auc\_Insecta} & drop & +0.0147 & \texttt{auc\_Mammalia} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{GeM sharpens toward narrow bands; insects/frogs are narrow-band.}} \\[2pt]
+\texttt{mean\_time\_pool} & \texttt{lrap} & drop & $-$0.0108 & \texttt{auc\_Amphibia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Attention pooling picks the frames with the call; uniform pooling dilutes short calls.}} \\[2pt]
+\texttt{no\_soundscape\_data} & \texttt{auc\_soundscape\_macro} & drop & $-$0.0486 & \texttt{auc\_Amphibia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Soundscape windows match the deployment domain.}} \\[2pt]
+\texttt{no\_mixup} & \texttt{f1\_macro} & drop & $-$0.0471 & \texttt{auc\_Aves} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Mixup teaches multi-species windows, so multi-label F1 should drop more than AUC.}} \\[2pt]
+\texttt{no\_specaug} & \texttt{auc\_soundscape\_macro} & small drop & $-$0.0007 & \texttt{auc\_Mammalia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{SpecAugment is a generic regulariser; expect a small uniform drop.}} \\[2pt]
+\texttt{no\_rare\_upsample} & \texttt{auc\_rare} & drop & $-$0.0043 & \texttt{auc\_Mammalia} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Upsampling only touches species with <20 clips.}} \\[2pt]
+\texttt{head\_clip\_only} & \texttt{lrap} & drop & +0.0058 & \texttt{f1\_macro} & not supported \\
+\multicolumn{6}{p{15cm}}{\emph{Clip and frame-max heads make different errors; the 50/50 blend should beat either.}} \\[2pt]
+\texttt{head\_framemax\_only} & \texttt{ece} & rise & +0.0360 & \texttt{ece} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Max over frames is biased upward, so frame-max-only should be over-confident.}} \\[2pt]
+\texttt{full+gauss\_smooth} & \texttt{temporal\_jitter} & drop & $-$0.0313 & \texttt{temporal\_jitter} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Smoothing across neighbouring windows mainly reduces prediction jitter.}} \\[2pt]
+\texttt{full+tax\_smooth} & \texttt{auc\_rare} & rise & +0.0629 & \texttt{auc\_Insecta} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Rare species borrow evidence from relatives in the same genus.}} \\[2pt]
+\texttt{full+site\_hour\_prior} & \texttt{auc\_soundscape\_macro} & rise & +0.0204 & \texttt{ece} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{Where and when a recording was made is a strong, free signal for which species can be present -- expected to be the best gain per unit of inference cost.}} \\[2pt]
+\texttt{full+all\_posthoc} & \texttt{auc\_soundscape\_macro} & rise & +0.1266 & \texttt{auc\_Insecta} & \textbf{supported} \\
+\multicolumn{6}{p{15cm}}{\emph{The free post-processing steps stack.}} \\[2pt]
+\end{longtable}
+\endgroup
