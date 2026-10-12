@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Full study on ONE L4 (GCP g2-standard-16: 8 cores / 16 vCPU, 64 GB RAM).
 #
-# Step 1 runs Perch v2 once over every 5 s window (pseudo-labels + cached
+# Step 1 runs Perch v2 (ONNX on the GPU via onnxruntime-gpu) once over every 5 s window (pseudo-labels + cached
 # embeddings). Step 2 trains the variants in 3 parallel lanes sharing the GPU
 # (Perch is no longer run during training, so each run is light); each lane
 # has 4 DataLoader workers -> 3 x (1 + 4) = 15 of 16 vCPUs. Step 3 scores
@@ -53,6 +53,7 @@ fail=0; for p in "${pids[@]}"; do wait "$p" || fail=1; done
 
 # ---- 3. score, cost, heatmaps
 python -m distilled_sed.ablations.evaluate --runs "$OUT" --taxonomy "$COMP_DIR/taxonomy.csv"
+# CPU on purpose: this measures on-site inference cost, not training speed
 python -m distilled_sed.ablations.benchmark_cost --threads 1 --perch-onnx "$PERCH_ONNX_PATH" | tee "$OUT/cost.txt"
 echo "Attention heatmaps: $OUT/*/attention_heatmaps.zip"
 exit $fail

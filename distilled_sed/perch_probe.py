@@ -10,7 +10,8 @@ Same training data, targets and folds as model1_sed.py (focal windows minus
 the fold's clips, labelled soundscapes of other folds, pseudo-labelled
 soundscapes), validated on the same soundscape windows, written as oof.npz in
 the same format so ablations/evaluate.py scores it like any other variant.
-It answers: how good is the teacher alone, and what does running Perch on
+Perch itself is not run here: its embeddings were computed on the GPU by
+pseudo_label.py. It answers: how good is the teacher alone, and what does running Perch on
 site cost compared to the distilled ResNet?
 
     python -m distilled_sed.perch_probe --comp-dir $COMP_DIR \

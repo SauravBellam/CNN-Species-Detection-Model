@@ -28,6 +28,7 @@ What it produces (all windows are exactly 5 s):
   *_spatial.npy        Perch per-frame embeddings (T, 1536) per window, for the
                        Perch + attention-pooling + linear-probe ablation.
 
+Perch runs on the GPU (onnxruntime-gpu); the script stops if CUDA is not available.
 Usage (on the VM, onnxruntime-gpu installed):
   python -m distilled_sed.pseudo_label \
       --comp-dir $COMP_DIR --waveform-cache $WAVEFORM_CACHE_DIR \
@@ -60,11 +61,26 @@ PROXY_TAXA = {"Amphibia", "Insecta", "Aves"}
 
 # ---------------------------------------------------------------- Perch
 class Perch:
-    def __init__(self, onnx_path, batch=64):
+    """Perch v2 as ONNX on the GPU (onnxruntime-gpu, CUDAExecutionProvider).
+
+    Not the "perch_v2_cpu" TensorFlow SavedModel the Kaggle notebook used: that
+    variant is built for CPU-only scoring. The ONNX graph is device-agnostic and
+    runs on CUDA when onnxruntime-gpu is installed. We refuse to silently fall
+    back to CPU (it would take many times longer) unless allow_cpu is set.
+    """
+
+    def __init__(self, onnx_path, batch=64, allow_cpu=False):
         import onnxruntime as ort
+        if "CUDAExecutionProvider" not in ort.get_available_providers() and not allow_cpu:
+            raise RuntimeError("onnxruntime has no CUDA provider -- install onnxruntime-gpu "
+                               "matching the VM's CUDA (or pass --allow-cpu)")
+        so = ort.SessionOptions()
+        so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         self.sess = ort.InferenceSession(
-            str(onnx_path), providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+            str(onnx_path), so, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
         print("Perch providers:", self.sess.get_providers())
+        if self.sess.get_providers()[0] != "CUDAExecutionProvider" and not allow_cpu:
+            raise RuntimeError("Perch session did not start on CUDA (check CUDA/cuDNN libs)")
         self.inp = self.sess.get_inputs()[0].name
         self.out = {o.name: i for i, o in enumerate(self.sess.get_outputs())}
         assert "label" in self.out and "embedding" in self.out, f"outputs: {list(self.out)}"
@@ -197,6 +213,8 @@ def main():
     ap.add_argument("--min-detect", type=float, default=0.05)
     ap.add_argument("--no-spatial", action="store_true")
     ap.add_argument("--skip-focal", action="store_true")
+    ap.add_argument("--batch", type=int, default=128, help="Perch windows per GPU batch")
+    ap.add_argument("--allow-cpu", action="store_true", help="permit CPU fallback (slow)")
     args = ap.parse_args()
     out = args.out; (out / "sc_wave").mkdir(parents=True, exist_ok=True)
 
@@ -204,7 +222,7 @@ def main():
     l2i = {l: i for i, l in enumerate(primary)}
     taxonomy = pd.read_csv(args.comp_dir / "taxonomy.csv")
     bc_idx, mapped, proxies, cls = build_mapping(taxonomy, pd.read_csv(args.perch_labels), primary)
-    perch = Perch(args.perch_onnx)
+    perch = Perch(args.perch_onnx, batch=args.batch, allow_cpu=args.allow_cpu)
     keep_spatial = not args.no_spatial and perch.spatial_key is not None
     if not keep_spatial:
         print("No spatial embedding saved -> the Perch probe will attend over 1 frame per window")
