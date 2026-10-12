@@ -824,6 +824,11 @@ def train_fold(fold_k):
             scaler.update()
             el += loss.item(); el_cls += cls_loss.item()
             el_dist += distill_loss.item(); nb_count += 1
+            if nb_count % 200 == 0:  # progress inside the epoch
+                el_s = time.time() - t0
+                print(f"      step {nb_count}/{nst}  loss={el / nb_count:.4f}  "
+                      f"{nb_count / el_s:.1f} it/s  eta {(nst - nb_count) / (nb_count / el_s) / 60:.1f} min",
+                      flush=True)
 
         # Validation
         val_preds_dict = _predict_from_waveforms(m, mel_transform, val_wavs)
