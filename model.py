@@ -14,7 +14,9 @@ class BirdResNet(nn.Module):
 
     def __init__(self, num_classes, dropout=0.2):
         super().__init__()
-        self.model = BirdSEDModel(num_classes=num_classes, use_distill=False)
+        # in_chans=1: this repo's precompute.py pipeline feeds single log-mel chunks
+        self.model = BirdSEDModel(num_classes=num_classes, in_chans=1, use_distill=False,
+                                  dropout=dropout)
 
     def forward(self, x, return_framewise=False):
         return self.model(x, return_framewise=return_framewise)

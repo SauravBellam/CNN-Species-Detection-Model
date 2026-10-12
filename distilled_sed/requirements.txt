@@ -11,3 +11,5 @@ scipy
 scikit-learn
 librosa
 soundfile
+matplotlib
+pyarrow

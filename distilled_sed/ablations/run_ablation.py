@@ -36,6 +36,16 @@ def main():
             print(f"[skip] {name}")
             continue
         overrides = dict(TRAIN_VARIANTS[name])
+        if overrides.get("script") == "perch_probe":
+            cmd = [sys.executable, "-m", "distilled_sed.perch_probe",
+                   "--comp-dir", os.environ["COMP_DIR"],
+                   "--waveform-cache", os.environ["WAVEFORM_CACHE_DIR"],
+                   "--pseudo-dir", os.environ["PSEUDO_DIR"], "--out", str(out_dir.resolve())]
+            if args.folds:
+                cmd += ["--folds", *map(str, args.folds)]
+            print(f"\n=== {name}: Perch + attention pooling + linear probe ===", flush=True)
+            subprocess.run(cmd, check=True, cwd=REPO_ROOT)
+            continue
         if args.epochs:
             overrides["EPOCHS"] = args.epochs
         if args.folds:

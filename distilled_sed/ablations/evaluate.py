@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from . import metrics as M
+from ..priors import fit_prior_tables, prior_logits, site_hour, taxonomy_smooth
 from .configs import HYPOTHESES, POSTHOC_VARIANTS, TRAIN_VARIANTS
 
 RARE_MAX, COMMON_MIN = 20, 100  # focal training clips per species
@@ -25,6 +26,42 @@ def load_run(path):
     order = np.lexsort((d["start_sec"][has], d["filename"][has]))  # file, then time
     sel = np.where(has)[0][order]
     return d, sel
+
+
+TEXTURE_TAXA = {"Amphibia", "Insecta"}
+
+
+def _logit(p):
+    p = np.clip(p, 1e-6, 1 - 1e-6)
+    return np.log(p) - np.log1p(-p)
+
+
+def add_site_hour_prior(d, sel, p, lam):
+    """Fold-safe: tables for fold k are fit only on the other folds' labelled windows.
+    lam is per class (1.0 frogs/insects, 0.4 others, as in the notebook)."""
+    sh = [site_hour(f) for f in d["filename"]]
+    sites = np.array([a for a, _ in sh]); hours = np.array([b for _, b in sh])
+    z = _logit(p)
+    folds = d["fold"][sel]
+    for k in np.unique(folds):
+        fit = d["fold"] != k
+        t = fit_prior_tables(sites[fit], hours[fit], d["y"][fit])
+        m = folds == k
+        z[m] += lam * prior_logits(sites[sel][m], hours[sel][m], t)
+    return 1 / (1 + np.exp(-z))
+
+
+def posthoc(mode, d, sel, tax, lam):
+    p = d["blend"][sel]
+    if mode in ("clip", "fmax"):
+        return d[mode][sel]
+    if mode in ("prior", "all"):
+        p = add_site_hour_prior(d, sel, p, lam)
+    if mode in ("smooth", "all"):
+        p = M.gauss_smooth(p, d["filename"][sel])
+    if mode in ("tax", "all"):
+        p = taxonomy_smooth(p, d["labels"], tax)
+    return p
 
 
 def score(d, sel, p, taxon_classes):
@@ -57,10 +94,9 @@ def main():
                              for t in ["Aves", "Amphibia", "Insecta", "Mammalia"]}
         rows[name] = score(d, sel, d["blend"][sel], taxon_classes)
         if name == "full":
+            lam = np.array([1.0 if l2t.get(str(l)) in TEXTURE_TAXA else 0.4 for l in d["labels"]])
             for pname, mode in POSTHOC_VARIANTS.items():
-                p = (M.gauss_smooth(d["blend"][sel], d["filename"][sel]) if mode == "smooth"
-                     else d[mode][sel])
-                rows[pname] = score(d, sel, p, taxon_classes)
+                rows[pname] = score(d, sel, posthoc(mode, d, sel, tax, lam), taxon_classes)
 
     table = pd.DataFrame(rows).T
     table.to_csv(runs / "ablation_table.csv")

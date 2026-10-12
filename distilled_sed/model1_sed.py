@@ -156,18 +156,31 @@ USE_LABELED_SC      = True
 # --- Data loading (notebook used num_workers=0; >0 keeps the GPU fed) ---
 NUM_WORKERS = int(os.environ.get("NUM_WORKERS", 0))
 
-ACTIVE_SOURCES = ["focal", "sc"]
-SHARES = {"focal": 0.9, "sc": 0.1}
+# --- Perch pseudo labels (run distilled_sed/pseudo_label.py first) ---
+PSEUDO_DIR       = Path("/kaggle/working/pseudo")
+USE_PSEUDO_FOCAL = True   # Perch-localised soft targets per 5 s focal window (else clip labels)
+USE_PSEUDO_SC    = True   # add unlabelled soundscapes with fused Perch + prior soft targets
+
+# --- Input features / head ---
+STACK_MODE = "delta"      # "delta" (log-mel, d, dd) | "multires" | "single" (1-ch notebook input)
+HEAD       = "sed"        # "sed" (GeM + attention) | "pooled" (plain ResNet-18 baseline)
+
+# --- Attention heatmap tracking ---
+TRACK_N = 16              # fixed validation windows per fold tracked every epoch
+
+ACTIVE_SOURCES = ["focal", "sc", "pseudo_sc"]
+SHARES = {"focal": 0.7, "sc": 0.1, "pseudo_sc": 0.2}
 SOURCE_WEIGHTS = {
     "focal":         1.0,
     "focal_missing": 0.0,
     "sc":            1.0,
+    "pseudo_sc":     1.0,
 }
 
 # [ablation hook] env overrides --------------------------------------
 def _apply_overrides():
     g = globals()
-    for k in ("COMP_DIR", "WAVEFORM_CACHE_DIR", "PERCH_ONNX_PATH", "OUT_DIR"):
+    for k in ("COMP_DIR", "WAVEFORM_CACHE_DIR", "PERCH_ONNX_PATH", "OUT_DIR", "PSEUDO_DIR"):
         if os.environ.get(k):
             g[k] = Path(os.environ[k])
     g["LABELS_PATH"] = g["COMP_DIR"] / "train_soundscapes_labels.csv"
@@ -185,12 +198,14 @@ STOP_GRAD_CLS = None   # None -> same as USE_PERCH_DISTILL (original behaviour)
 FREQ_POOL = "gem"      # "gem" (original) | "mean"
 TIME_POOL = "att"      # "att" (original) | "mean"
 _apply_overrides()
-SHARES = {k: v for k, v in SHARES.items() if k != "sc" or USE_LABELED_SC}
+SHARES = {k: v for k, v in SHARES.items()
+          if (k != "sc" or USE_LABELED_SC) and (k != "pseudo_sc" or USE_PSEUDO_SC)}
 SHARES = {k: v / sum(SHARES.values()) for k, v in SHARES.items()}
 
 print(f"Backbone: {BACKBONE_NAME}")
 print(f"Train duration: {TRAIN_DURATION}s | Mel: {N_MELS} mels, n_fft={N_FFT}, hop={HOP_LENGTH}")
-print(f"Distillation: {'ON' if USE_PERCH_DISTILL else 'OFF'} (alpha={ALPHA_DISTILL})")
+print(f"Distillation: {'ON' if USE_PERCH_DISTILL else 'OFF'} (alpha={ALPHA_DISTILL}, cached Perch embeddings)")
+print(f"Input: {STACK_MODE} | Head: {HEAD} | Pseudo focal: {USE_PSEUDO_FOCAL} | Pseudo sc: {USE_PSEUDO_SC}")
 print(f"Batch: {BATCH} | Epochs: {EPOCHS} | Folds: {FOLDS}")
 
 
@@ -283,6 +298,25 @@ sc_cache_meta["fold"] = sc_cache_meta["filename"].map(file_to_fold).fillna(-1).a
 print(f"\nSoundscape fold distribution:")
 print(sc_cache_meta["fold"].value_counts().sort_index())
 # =================================================================
+# PERCH PSEUDO-LABEL CACHE: every focal clip is cut into 5 s windows; each
+# window has a Perch-localised soft target and a Perch embedding (distillation
+# target). Replaces the notebook's random crop + online Perch teacher.
+# =================================================================
+focal_win = pd.read_parquet(PSEUDO_DIR / "focal_windows.parquet")
+focal_win["row"] = np.arange(len(focal_win))
+FOCAL_T = np.load(PSEUDO_DIR / "focal_targets.npy", mmap_mode="r")
+FOCAL_E = np.load(PSEUDO_DIR / "focal_emb.npy", mmap_mode="r")
+audio_cache_meta = focal_win.merge(audio_for_split[["original_idx", "fold"]],
+                                   on="original_idx", how="inner")
+print(f"Focal 5 s windows: {len(audio_cache_meta)}")
+
+sc_win = pd.read_parquet(PSEUDO_DIR / "sc_windows.parquet")
+SC_E = np.load(PSEUDO_DIR / "sc_emb.npy", mmap_mode="r")
+SC_EMB_ROW = {(f, int(t)): i for i, (f, t) in enumerate(zip(sc_win["filename"], sc_win["start_sec"]))}
+pseudo_sc_df = sc_win[~sc_win["labeled"]].reset_index().rename(columns={"index": "row"})
+print(f"Unlabelled soundscape windows (pseudo): {len(pseudo_sc_df)}")
+
+# =================================================================
 # UPSAMPLE RARE SPECIES
 # =================================================================
 counts = audio_cache_meta["primary_label"].value_counts()
@@ -350,20 +384,17 @@ def full_eval(y_true, y_pred, ns22, tm):
     return r
 
 # Model classes live in distilled_sed/models.py (ResNet-18 trunk + Model_1 SED head)
-from .models import (MelSpecTransform as _Mel, SpecAugment as _SpecAug, PerchTeacher,
-                     BirdSEDModel, SEDExportWrapper)
+from .models import MelFeatures, SpecAugment as _SpecAug, BirdSEDModel, SEDExportWrapper
 
 def MelSpecTransform():
-    return _Mel(SR, N_FFT, HOP_LENGTH, N_MELS, FMIN, FMAX)
+    """Stacked + standardised log-mel features (see models.MelFeatures)."""
+    return MelFeatures(SR, N_FFT, HOP_LENGTH, N_MELS, FMIN, FMAX, stack_mode=STACK_MODE)
+
+IN_CHANS = 1 if STACK_MODE == "single" else 3
 
 def SpecAugment():
     return _SpecAug(FREQ_MASK_PARAM, TIME_MASK_PARAM, NUM_FREQ_MASKS, NUM_TIME_MASKS)
 
-def _norm_mel(mel):
-    """Per-sample standardisation, vectorised (notebook looped over the batch)."""
-    mu = mel.mean(dim=(1, 2, 3), keepdim=True)
-    sd = mel.std(dim=(1, 2, 3), keepdim=True)
-    return (mel - mu) / (sd + 1e-6)
 
 def _seed_worker(worker_id):
     # numpy RNG is not reseeded per DataLoader worker; without this every
@@ -372,7 +403,8 @@ def _seed_worker(worker_id):
     np.random.seed(seed); random.seed(seed)
 
 def make_model(pretrained=True):
-    return BirdSEDModel(NUM_CLASSES, pretrained=pretrained, use_distill=USE_PERCH_DISTILL,
+    return BirdSEDModel(NUM_CLASSES, pretrained=pretrained, in_chans=IN_CHANS, head=HEAD,
+                        use_distill=USE_PERCH_DISTILL,
                         embed_dim=PERCH_EMBED_DIM, stop_grad_cls=STOP_GRAD_CLS,
                         freq_pool=FREQ_POOL, time_pool=TIME_POOL).to(device)
 
@@ -458,8 +490,24 @@ if _labeled_rows:
 # ------------------------------------------------------------------
 # FocalDS -- with Focal-Focal AND Focal-Soundscape MixUp
 # ------------------------------------------------------------------
+_ZERO_EMB = np.zeros(PERCH_EMBED_DIM, np.float32)
+
+def _sc_emb(filename, start_sec):
+    i = SC_EMB_ROW.get((filename, int(start_sec)))
+    return (_ZERO_EMB, 0.0) if i is None else (np.asarray(SC_E[i], np.float32), 1.0)
+
+def _item(wav, lb, src, emb, has_emb):
+    """(waveform, label, weight, mask, source, perch_emb, has_emb)"""
+    return (torch.from_numpy(np.asarray(wav, np.float32)).unsqueeze(0),
+            torch.from_numpy(np.asarray(lb, np.float32)),
+            torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), src,
+            torch.from_numpy(np.asarray(emb, np.float32)), torch.tensor(has_emb))
+
 class FocalDS(Dataset):
-    """Focal recording dataset. Returns (waveform, label, weight, mask, source_tag)."""
+    """Focal 5 s windows. Target = Perch-localised soft label (USE_PSEUDO_FOCAL)
+    or the clip's hard primary + secondary labels. Focal-Focal and
+    Focal-Soundscape MixUp as in the notebook; Perch embeddings are mixed with
+    the same lambda for the distillation target."""
     def __init__(self, df, l2i, secondary_lookup=None,
                  sc_mixup_sources=None, fold_k=None, aug=False):
         self.df, self.l2i, self.aug = df.reset_index(drop=True), l2i, aug
@@ -471,47 +519,40 @@ class FocalDS(Dataset):
 
     def _load_chunk(self, r):
         w = load_focal(r["cache_file"])
-        if w is None: return None, None
-        if self.aug:
-            start = np.random.randint(0, max(1, len(w) - TRAIN_SAMPLES + 1)) if len(w) > TRAIN_SAMPLES else 0
+        if w is None: return None, None, None
+        ch = extract_chunk_np(w, int(r["start_sec"]) * SR, TRAIN_SAMPLES)
+        if USE_PSEUDO_FOCAL:
+            lb = np.asarray(FOCAL_T[int(r["row"])], np.float32)
         else:
-            start = int(r.get("start_sec", 0)) * SR
-        ch = extract_chunk_np(w, start, TRAIN_SAMPLES)
-        lb = np.zeros(NUM_CLASSES, dtype=np.float32)
-        if str(r["primary_label"]) in self.l2i:
-            lb[self.l2i[str(r["primary_label"])]] = 1.0
-        if self.secondary_lookup is not None and "original_idx" in self.df.columns:
-            for s in self.secondary_lookup.get(int(r["original_idx"]), []):
-                if s in self.l2i: lb[self.l2i[s]] = 1.0
-        return ch, lb
+            lb = np.zeros(NUM_CLASSES, dtype=np.float32)
+            if str(r["primary_label"]) in self.l2i:
+                lb[self.l2i[str(r["primary_label"])]] = 1.0
+            if self.secondary_lookup is not None:
+                for s in self.secondary_lookup.get(int(r["original_idx"]), []):
+                    if s in self.l2i: lb[self.l2i[s]] = 1.0
+        return ch, lb, np.asarray(FOCAL_E[int(r["row"])], np.float32)
 
     def __getitem__(self, i):
-        r1 = self.df.iloc[i]
-        ch1, lb1 = self._load_chunk(r1)
+        ch1, lb1, e1 = self._load_chunk(self.df.iloc[i])
         if ch1 is None:
-            return (torch.zeros(1, TRAIN_SAMPLES), torch.zeros(NUM_CLASSES),
-                    torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), "focal_missing")
+            return _item(np.zeros(TRAIN_SAMPLES), np.zeros(NUM_CLASSES), "focal_missing", _ZERO_EMB, 0.0)
 
         # Focal-Focal MixUp
         if USE_FOCAL_MIXUP and self.aug and np.random.random() < MIXUP_PROB:
             ch2 = None
             for _ in range(3):
-                j = np.random.randint(len(self.df))
-                ch2, lb2 = self._load_chunk(self.df.iloc[j])
+                ch2, lb2, e2 = self._load_chunk(self.df.iloc[np.random.randint(len(self.df))])
                 if ch2 is not None: break
             if ch2 is not None:
                 lam = np.random.beta(MIXUP_ALPHA, MIXUP_ALPHA)
-                ch_mix = (lam * ch1 + (1 - lam) * ch2).astype(np.float32)
-                if self.aug: ch_mix = apply_aug(ch_mix)
+                ch_mix = apply_aug((lam * ch1 + (1 - lam) * ch2).astype(np.float32))
                 lb = np.maximum(lb1, lb2) if MIXUP_HARD else (lam * lb1 + (1 - lam) * lb2)
-                return (torch.from_numpy(ch_mix).unsqueeze(0), torch.from_numpy(lb),
-                        torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), "focal")
+                return _item(ch_mix, lb, "focal", lam * e1 + (1 - lam) * e2, 1.0)
 
         # Focal-Soundscape MixUp
         if (USE_FOCAL_SC_MIXUP and self.aug and self.sc_mixup_sources
                 and np.random.random() < FOCAL_SC_MIXUP_PROB):
-            src_idx = np.random.randint(len(self.sc_mixup_sources))
-            cache_dir, meta_df_sc, labels = self.sc_mixup_sources[src_idx]
+            cache_dir, meta_df_sc, labels = self.sc_mixup_sources[np.random.randint(len(self.sc_mixup_sources))]
             eligible = meta_df_sc[meta_df_sc["fold"] != self.fold_k] if self.fold_k is not None else meta_df_sc
             if len(eligible) > 0:
                 sc_row = eligible.iloc[np.random.randint(len(eligible))]
@@ -519,18 +560,16 @@ class FocalDS(Dataset):
                 if sc_wav is not None and len(sc_wav) >= TRAIN_SAMPLES:
                     sc_chunk = extract_chunk_np(sc_wav, int(sc_row["start_sec"]) * SR, TRAIN_SAMPLES)
                     lam = np.random.beta(FOCAL_SC_MIXUP_ALPHA, FOCAL_SC_MIXUP_ALPHA)
-                    ch_mix = (lam * ch1 + (1 - lam) * sc_chunk).astype(np.float32)
-                    if self.aug: ch_mix = apply_aug(ch_mix)
+                    ch_mix = apply_aug((lam * ch1 + (1 - lam) * sc_chunk).astype(np.float32))
                     lb_sc = labels[int(sc_row["label_idx"])].astype(np.float32)
                     lb = np.maximum(lb1, lb_sc) if MIXUP_HARD else lam * lb1 + (1 - lam) * lb_sc
-                    return (torch.from_numpy(ch_mix).unsqueeze(0), torch.from_numpy(lb),
-                            torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), "focal")
+                    e_sc, has = _sc_emb(sc_row["filename"], sc_row["start_sec"])
+                    emb = lam * e1 + (1 - lam) * e_sc if has else e1
+                    return _item(ch_mix, lb, "focal", emb, 1.0)
 
         # No MixUp
         if self.aug: ch1 = apply_aug(ch1)
-        return (torch.from_numpy(ch1.astype(np.float32)).unsqueeze(0),
-                torch.from_numpy(lb1),
-                torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), "focal")
+        return _item(ch1, lb1, "focal", e1, 1.0)
 
 # ------------------------------------------------------------------
 # ScDS -- Labeled soundscape windows
@@ -544,13 +583,27 @@ class ScDS(Dataset):
         wav_full = load_sc_waveform_from(WAVEFORM_CACHE_DIR, row.get("cache_file")) \
                    if row.get("cache_file") else None
         if wav_full is None:
-            wav_t = torch.zeros(1, TRAIN_SAMPLES)
+            chunk = np.zeros(TRAIN_SAMPLES, np.float32)
         else:
             chunk = extract_chunk_np(wav_full, int(row["start_sec"]) * SR, TRAIN_SAMPLES)
             if self.aug: chunk = apply_aug(chunk)
-            wav_t = torch.from_numpy(chunk.astype(np.float32)).unsqueeze(0)
-        return (wav_t, torch.from_numpy(self.Y[i].astype(np.float32)),
-                torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), "sc")
+        emb, has = _sc_emb(row["filename"], row["start_sec"])
+        return _item(chunk, self.Y[i], "sc", emb, has)
+
+# ------------------------------------------------------------------
+# PseudoScDS -- Unlabelled soundscape windows with Perch + prior soft targets
+# ------------------------------------------------------------------
+class PseudoScDS(Dataset):
+    def __init__(self, df, targets, aug=False):
+        self.df, self.T, self.aug = df.reset_index(drop=True), targets, aug
+    def __len__(self): return len(self.df)
+    def __getitem__(self, i):
+        r = self.df.iloc[i]
+        w = np.load(PSEUDO_DIR / "sc_wave" / f"{Path(r['filename']).stem}.npy", mmap_mode="r")
+        s0 = int(r["start_sec"]) * SR
+        chunk = np.asarray(w[s0:s0 + TRAIN_SAMPLES], np.float32) / 32767.0
+        if self.aug: chunk = apply_aug(chunk)
+        return _item(chunk, self.T[int(r["row"])], "pseudo_sc", SC_E[int(r["row"])], 1.0)
 
 # ------------------------------------------------------------------
 # Load focal secondary labels
@@ -600,7 +653,9 @@ def collate_m(batch):
             torch.stack([b[1] for b in batch]),
             torch.stack([b[2] for b in batch]),
             torch.stack([b[3] for b in batch]),
-            [b[4] for b in batch])
+            [b[4] for b in batch],
+            torch.stack([b[5] for b in batch]),
+            torch.stack([b[6] for b in batch]))
 
 def mk_sw(sr):
     """Per-sample source weight tensor."""
@@ -637,7 +692,6 @@ def _predict_from_waveforms(model, mel_transform, wav_list, batch_size=64):
         for s in range(0, len(wav_list), batch_size):
             batch = torch.stack(wav_list[s:s+batch_size]).to(device)
             mel = mel_transform(batch)
-            mel = _norm_mel(mel)
             with autocast():
                 clip_logits, framewise = model(mel, return_framewise=True)
                 frame_max = framewise.max(dim=1).values
@@ -662,6 +716,10 @@ def build_active_datasets(fold_k):
         Y_tr = Y_SC[~vm]
         sds = ScDS(Y_tr, sc_train_df, aug=True)
         items.append(("sc", sds, len(sds)))
+    if USE_PSEUDO_SC and len(pseudo_sc_df):
+        T_k = np.load(PSEUDO_DIR / f"sc_targets_fold{fold_k}.npy", mmap_mode="r")  # priors exclude fold k
+        pds = PseudoScDS(pseudo_sc_df, T_k, aug=True)
+        items.append(("pseudo_sc", pds, len(pds)))
     return items
 
 def train_fold(fold_k):
@@ -680,9 +738,6 @@ def train_fold(fold_k):
     m = make_model()
     mel_transform = MelSpecTransform().to(device)
     spec_augment = SpecAugment().to(device)
-    perch_teacher = PerchTeacher(PERCH_ONNX_PATH,
-                                  "cuda" if torch.cuda.is_available() else "cpu") \
-                    if USE_PERCH_DISTILL else None
 
     opt = torch.optim.AdamW(m.parameters(), lr=LR, weight_decay=WD)
     scaler = GradScaler()
@@ -695,6 +750,15 @@ def train_fold(fold_k):
     best_macro, best_state_macro = -1.0, None
     val_wavs = _load_val_waveforms(val_sc_df)
 
+    # --- attention heatmap tracking: fixed labelled non-S22 val windows ---
+    _cand = np.where((Y_val.sum(1) > 0) & ns22_val)[0][:TRACK_N]
+    track = {"idx": _cand, "cls": Y_val[_cand].argmax(1) if len(_cand) else np.zeros(0, int),
+             "row_id": [f"{val_sc_df.loc[i, 'filename']}_{int(val_sc_df.loc[i, 'start_sec']) + 5}" for i in _cand],
+             "time_att": [], "cam": [], "prob": []}
+    if len(_cand):
+        with torch.no_grad():
+            track["mel"] = mel_transform(torch.stack([val_wavs[i] for i in _cand]).to(device))[:, 0].cpu().numpy()
+
     for ep in range(EPOCHS):
         m.train()
         smp = MixSamp(list(sizes), list(names), SHARES, BATCH, nst, seed=42 + ep)
@@ -704,13 +768,13 @@ def train_fold(fold_k):
         el, el_cls, el_dist, nb_count = 0.0, 0.0, 0.0, 0
         t0 = time.time()
 
-        for wav, lb, wt, mk, sr in tl:
+        for wav, lb, wt, mk, sr, perch_emb, has_emb in tl:
             wav, lb, wt, mk = wav.to(device), lb.to(device), wt.to(device), mk.to(device)
+            perch_emb, has_emb = perch_emb.to(device), has_emb.to(device)
             sw = mk_sw(sr).to(device)
 
             with torch.no_grad():
                 mel = mel_transform(wav)
-                mel = _norm_mel(mel)
                 mel = spec_augment(mel)
 
             with autocast():
@@ -730,17 +794,10 @@ def train_fold(fold_k):
                 cls_loss = (ps * sw).mean()
 
                 # Distillation loss
-                if USE_PERCH_DISTILL and perch_teacher is not None:
-                    with torch.no_grad():
-                        wav_5s = wav.squeeze(1)
-                        N = wav_5s.shape[1]
-                        if N > 160000:
-                            start = (N - 160000) // 2
-                            wav_5s = wav_5s[:, start:start + 160000]
-                        elif N < 160000:
-                            wav_5s = F.pad(wav_5s, (0, 160000 - N))
-                        perch_emb = perch_teacher.embed(wav_5s).to(device)
-                    distill_loss = F.mse_loss(distill_emb, perch_emb)
+                # Distillation loss (cached Perch embedding of the same 5 s window)
+                if USE_PERCH_DISTILL:
+                    per = ((distill_emb.float() - perch_emb) ** 2).mean(dim=1)
+                    distill_loss = (per * has_emb).sum() / has_emb.sum().clamp(min=1.0)
                     loss = cls_loss + ALPHA_DISTILL * distill_loss
                 else:
                     distill_loss = torch.tensor(0.0)
@@ -772,6 +829,14 @@ def train_fold(fold_k):
         for t in ["Aves", "Amphibia", "Insecta", "Mammalia"]:
             history[f"ns22_{t}"].append(r[f"non_s22_{t}"])
         history["val_preds"].append(val_preds.astype(np.float32))
+        if len(track["idx"]):
+            m.eval()
+            with torch.no_grad():
+                am = m.attention_maps(mel_transform(torch.stack([val_wavs[i] for i in track["idx"]]).to(device)))
+            ar = np.arange(len(track["idx"]))
+            track["time_att"].append(am["time_att"].float().cpu().numpy()[ar, track["cls"]])
+            track["cam"].append(am["cam"].float().cpu().numpy()[ar, track["cls"]])
+            track["prob"].append(am["clip_prob"].float().cpu().numpy()[ar, track["cls"]])
 
         tag_ns22 = ""; tag_macro = ""
         if r["non_s22_macro"] > best_ns22:
@@ -791,7 +856,8 @@ def train_fold(fold_k):
               f"In={r['non_s22_Insecta']:.4f} Ma={r['non_s22_Mammalia']:.4f} "
               f"[{time.time()-t0:.0f}s]{tag_ns22}{tag_macro}")
 
-    del perch_teacher, m, mel_transform, spec_augment
+    history["track"] = track
+    del m, mel_transform, spec_augment
     torch.cuda.empty_cache(); gc.collect()
     return best_state_ns22, best_state_macro, history
 
@@ -820,6 +886,17 @@ else:
     
         best_ns22_state, best_macro_state, hist = train_fold(fold_k)
         all_hist[fold_k] = hist
+
+        # attention heatmap tracking for this fold -> OUT_DIR/attention/fold{k}.npz
+        _tr = hist["track"]
+        if len(_tr["idx"]):
+            (OUT_DIR / "attention").mkdir(exist_ok=True)
+            np.savez_compressed(
+                OUT_DIR / "attention" / f"fold{fold_k}.npz",
+                mel=_tr["mel"], time_att=np.stack(_tr["time_att"]), cam=np.stack(_tr["cam"]),
+                prob=np.stack(_tr["prob"]), row_id=np.array(_tr["row_id"]),
+                species=np.array([PRIMARY_LABELS[c] for c in _tr["cls"]]),
+                ns22_auc=np.array(hist["ns22_macro"]))
     
         mel_tf = MelSpecTransform().to(device)
         val_wavs_k = _load_val_waveforms(val_sc_df_k)
@@ -835,13 +912,13 @@ else:
     
             # --- ONNX Export (Conv1d remap for stable tracing) ---
             m.eval()
-            INF_N_MELS = 128
+            INF_N_MELS = N_MELS
             INF_N_FRAMES = VAL_SAMPLES // HOP_LENGTH + 1
     
             export_model = SEDExportWrapper(m).to(device)
             export_model.eval()
     
-            dummy_mel = torch.randn(1, 1, INF_N_MELS, INF_N_FRAMES).to(device)
+            dummy_mel = torch.randn(1, IN_CHANS, INF_N_MELS, INF_N_FRAMES).to(device)
             onnx_path = OUT_DIR / f"sed_distill_fold{fold_k}.onnx"
             torch.onnx.export(
                 export_model, dummy_mel, str(onnx_path),
@@ -881,12 +958,17 @@ else:
         OUT_DIR / "oof.npz", y=Y_SC, ns22=non_s22_mask_sc,
         filename=sc_cache_meta["filename"].values.astype(str),
         start_sec=sc_cache_meta["start_sec"].values.astype(int),
+        fold=sc_cache_meta["fold"].values.astype(int),
         labels=np.array(PRIMARY_LABELS), **oof_modes,
         train_counts=train_df["primary_label"].astype(str).value_counts()
                      .reindex(PRIMARY_LABELS).fillna(0).astype(int).values,
     )
+    # render attention heatmaps (PNG per tracked window + epoch evolution) and zip them
+    from .attention_viz import render_dir
+    if (OUT_DIR / "attention").exists():
+        render_dir(OUT_DIR / "attention")
     with open(OUT_DIR / "history.json", "w") as _f:
-        json.dump({str(k): {kk: vv for kk, vv in h.items() if kk != "val_preds"}
+        json.dump({str(k): {kk: vv for kk, vv in h.items() if kk not in ("val_preds", "track")}
                    for k, h in all_hist.items()}, _f)
     if has.sum() > 0:
         r_all = full_eval(Y_SC[has], oof_ns22[has], non_s22_mask_sc[has], TAXON_MASKS)
@@ -917,7 +999,7 @@ else:
 
 
 # =================================================================
-# INFERENCE -- Mel spectrogram (librosa)
+# INFERENCE -- Mel features (same torch module as training)
 # =================================================================
 if MODE != "infer":
     print("Skipping inference setup (MODE='train')")
@@ -935,18 +1017,12 @@ else:
     INF_CHUNK_N  = INF_SR * INF_CHUNK_S   # 160,000
     INF_N_FRAMES = INF_CHUNK_N // INF_HOP + 1  # 313
     
+    _inf_features = MelSpecTransform().eval()  # identical to training features (CPU)
+
     def audio_to_mel(chunks):
-        """Raw audio chunks (N, 160000) -> normalized mel dB (N, 1, 128, 313)."""
-        mels = []
-        for i in range(chunks.shape[0]):
-            S = librosa.feature.melspectrogram(
-                y=chunks[i], sr=INF_SR, n_fft=INF_N_FFT, hop_length=INF_HOP,
-                n_mels=INF_N_MELS, fmin=INF_FMIN, fmax=INF_FMAX, power=2.0,
-            )
-            S_dB = librosa.power_to_db(S, top_db=INF_TOP_DB)
-            S_dB = (S_dB - S_dB.mean()) / (S_dB.std() + 1e-6)
-            mels.append(S_dB)
-        return np.stack(mels)[:, np.newaxis, :, :].astype(np.float32)
+        """Raw audio chunks (N, 160000) -> stacked standardised log-mel (N, C, 256, 313)."""
+        with torch.no_grad():
+            return _inf_features(torch.from_numpy(chunks)).numpy().astype(np.float32)
     
     print(f"Inference mel: {INF_N_MELS} mels, {INF_N_FRAMES} frames/chunk")
 

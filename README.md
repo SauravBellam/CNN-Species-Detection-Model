@@ -469,34 +469,51 @@ Use checkpoints created by `src.train` or `src.pipeline train`; older checkpoint
 
 ## Distilled SED (`distilled_sed/`) and ablations
 
-`distilled_sed/model1_sed.py` is the "Model_1" distilled SED from nina2025's Kaggle notebook
-[BirdCLEF 2026 EoS.9](https://www.kaggle.com/code/nina2025/birdclef-2026-eos-9#Model_1). All credit
-for the model idea (GeM frequency pooling, attention SED head, Perch v2 embedding distillation with
-stop-gradient) goes to the original authors. Our changes: the EfficientNet-B0 backbone is replaced by
-our ResNet-18 with its avgpool/fc removed (`distilled_sed/models.py`, also used by `model.py`), and the
-LR schedule is removed. The goal is a cheap model that can run 24/7 on site.
+**Goal: find the cheapest model we can train and evaluate that still performs well — cheap and
+fast enough to run 24/7 on site.** Every variant is judged on quality (many metrics, not just
+ROC-AUC) and on CPU inference cost; a component earns its place only if what it buys is worth what
+it costs.
 
-```bash
-# train every ablation variant (5-fold CV each)
-COMP_DIR=... WAVEFORM_CACHE_DIR=... PERCH_ONNX_PATH=... \
-  python -m distilled_sed.ablations.run_ablation --out runs/ablations
-# score them on many metrics and check hypotheses (writes CSV + hypotheses.md)
-python -m distilled_sed.ablations.evaluate --runs runs/ablations --taxonomy $COMP_DIR/taxonomy.csv
-# inference cost (params, MB, CPU ms per 5 s window)
-python -m distilled_sed.ablations.benchmark_cost --threads 1
-```
+**Credit.** `distilled_sed/model1_sed.py` is the "Model_1" distilled SED from nina2025's Kaggle
+notebook [BirdCLEF 2026 EoS.9](https://www.kaggle.com/code/nina2025/birdclef-2026-eos-9#Model_1):
+GeM frequency pooling, attention SED head, Perch v2 embedding distillation with stop-gradient, and
+its data pipeline (focal + soundscape sources, secondary labels, rare-species upsampling, mixup,
+SpecAugment). The Perch labelling system in `pseudo_label.py` (species mapping, genus proxies,
+site/hour priors, texture/event smoothing) and the taxonomy smoothing in `priors.py` come from the
+Perch pipeline in the same notebook. All credit for those ideas goes to the original authors.
 
-The metrics are macro ROC-AUC, PR-AUC, LRAP, macro F1@0.5, ECE, Brier, temporal jitter, AUC for rare
-(<20 clips) and common (≥100 clips) species, and per-taxon AUC. Each hypothesis is listed in
-`distilled_sed/ablations/configs.py`.
+**Pipeline.**
+1. `pseudo_label.py` runs Perch v2 once over every 5 s window. Focal clips only say *which*
+   species are present; Perch says *when*, so each 5 s window gets a soft target. Unlabelled
+   soundscapes get Perch scores fused with fold-safe site/hour priors. Perch embeddings are cached
+   as distillation targets, so Perch never runs during training.
+2. `model1_sed.py` trains ResNet-18 (avgpool/fc removed) + the attention SED head on 3-channel
+   stacked log-mel spectrograms (log-mel, delta, delta-delta), with a constant LR (no schedule).
+3. Attention heatmaps for 16 fixed validation windows per fold are tracked every epoch and written
+   to `<run>/attention_heatmaps.zip` (log-mel with class-activation overlay, attention over time per
+   epoch, and the probability of the true species per epoch).
+
+**Variants** (`ablations/configs.py`, each with a written hypothesis):
+- Baselines: plain ResNet-18 (`resnet_baseline`) and frozen Perch + attention pooling + linear
+  probe (`perch_attn_probe`).
+- One-change ablations: distillation, stop-gradient, Perch pseudo-labels on focal clips and on
+  soundscapes, input channels (single vs delta vs multi-resolution), GeM and attention pooling,
+  mixup, soundscape data, SpecAugment, rare-species upsampling.
+- Post-hoc, no retraining: clip vs frame-max head, temporal smoothing, taxonomy smoothing, and the
+  site/hour prior.
+
+Metrics: macro ROC-AUC, PR-AUC, LRAP, macro F1@0.5, ECE, Brier, temporal jitter, AUC for rare (<20
+clips) and common (≥100 clips) species, and per-taxon AUC; plus params, size and CPU ms per 5 s
+window from `ablations/benchmark_cost.py`.
 
 ### Running on one GPU (GCP g2-standard-16, 1x L4)
 
 ```bash
 bash distilled_sed/scripts/setup_vm.sh
-export COMP_DIR=... WAVEFORM_CACHE_DIR=... PERCH_ONNX_PATH=...
+export COMP_DIR=... WAVEFORM_CACHE_DIR=... PERCH_ONNX_PATH=... PERCH_LABELS=... PSEUDO_DIR=...
 PILOT=1 bash distilled_sed/scripts/run_ablations_l4.sh   # quick timing check
-bash distilled_sed/scripts/run_ablations_l4.sh           # full study
+bash distilled_sed/scripts/run_ablations_l4.sh           # pseudo-label, train all, score, cost
 ```
 
-This runs 3 variant lanes at the same time on the L4, each with 4 DataLoader workers.
+`PERCH_ONNX_PATH` must be a Perch v2 ONNX with `label` and `embedding` outputs (e.g. the
+`perch-onnx-for-birdclef-2026` Kaggle dataset); `PERCH_LABELS` is Perch v2's `assets/labels.csv`.

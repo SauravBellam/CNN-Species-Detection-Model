@@ -4,30 +4,65 @@ Adapted from the "Model_1" section of nina2025's Kaggle notebook
 "BirdCLEF 2026 EoS.9" (https://www.kaggle.com/code/nina2025/birdclef-2026-eos-9#Model_1),
 which in turn follows the BirdCLEF 2025 1st-place SED design.
 
-Change vs the notebook: the EfficientNet-B0 backbone is replaced by this
-repo's ResNet-18. The ResNet's global average pool and fc layer are removed so
-the attention head sees the full (channel, freq, time) feature map -- pooling
-before attention threw away the time axis the attention is supposed to weight.
+Changes vs the notebook:
+  * the EfficientNet-B0 backbone is replaced by this repo's ResNet-18. Its
+    global average pool and fc layer are removed so the attention head sees the
+    full (channel, freq, time) feature map -- pooling before attention threw
+    away the time axis the attention is supposed to weight;
+  * input is a 3-channel stack of log-mel spectrograms (see MelFeatures), so
+    the ImageNet conv1 weights are used as-is;
+  * head="pooled" gives the plain ResNet-18 baseline (avgpool + fc);
+  * attention_maps() exposes the attention / class-activation maps for the
+    heatmap tracking in attention_viz.py.
 """
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchaudio
 import torchvision.models as tv_models
 
 
-class MelSpecTransform(nn.Module):
-    """GPU log-mel spectrogram."""
+class MelFeatures(nn.Module):
+    """Waveform (B, 1, N) or (B, N) -> stacked, standardised log-mel (B, C, n_mels, T).
 
-    def __init__(self, sr=32000, n_fft=2048, hop_length=512, n_mels=256, fmin=20, fmax=16000):
+    stack_mode:
+      "delta"    -> [log-mel, delta, delta-delta]            (3 ch, one STFT; default)
+      "multires" -> log-mel at n_fft = n_fft/2, n_fft, 2*n_fft (3 ch, same hop/frames)
+      "single"   -> log-mel only                              (1 ch, the notebook's input)
+    Each channel is standardised per sample, as the notebook did for its 1 channel.
+    """
+
+    def __init__(self, sr=32000, n_fft=2048, hop_length=512, n_mels=256, fmin=20, fmax=16000,
+                 stack_mode="delta", top_db=80):
         super().__init__()
-        self.mel_spec = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sr, n_fft=n_fft, hop_length=hop_length,
-            n_mels=n_mels, f_min=fmin, f_max=fmax, power=2.0,
-        )
-        self.db_transform = torchaudio.transforms.AmplitudeToDB(top_db=80)
+        self.stack_mode = stack_mode
+        ffts = [n_fft // 2, n_fft, n_fft * 2] if stack_mode == "multires" else [n_fft]
+        self.mels = nn.ModuleList([
+            torchaudio.transforms.MelSpectrogram(
+                sample_rate=sr, n_fft=f, hop_length=hop_length,
+                n_mels=n_mels, f_min=fmin, f_max=fmax, power=2.0)
+            for f in ffts
+        ])
+        self.db = torchaudio.transforms.AmplitudeToDB(top_db=top_db)
 
-    def forward(self, waveform):
-        return self.db_transform(self.mel_spec(waveform))
+    @property
+    def n_channels(self):
+        return 1 if self.stack_mode == "single" else 3
+
+    def forward(self, wav):
+        if wav.dim() == 2:
+            wav = wav.unsqueeze(1)
+        chans = [self.db(m(wav)) for m in self.mels]          # each (B, 1, F, T)
+        x = chans[0]
+        if self.stack_mode == "delta":
+            d1 = torchaudio.functional.compute_deltas(x)
+            d2 = torchaudio.functional.compute_deltas(d1)
+            x = torch.cat([x, d1, d2], dim=1)
+        elif self.stack_mode == "multires":
+            x = torch.cat(chans, dim=1)
+        mu = x.mean(dim=(2, 3), keepdim=True)
+        sd = x.std(dim=(2, 3), keepdim=True)
+        return (x - mu) / (sd + 1e-6)
 
 
 class SpecAugment(nn.Module):
@@ -44,30 +79,6 @@ class SpecAugment(nn.Module):
         for _ in range(self.num_time_masks):
             mel = self.time_mask(mel)
         return mel
-
-
-class PerchTeacher:
-    """Frozen Perch v2 via ONNX. Takes 5s waveforms, returns 1536-d embeddings.
-    The teacher is never updated -- it provides a stable distillation target."""
-
-    def __init__(self, onnx_path, device_str="cuda", embed_dim=1536):
-        import onnxruntime as ort
-        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] \
-            if device_str == "cuda" else ["CPUExecutionProvider"]
-        self.session = ort.InferenceSession(str(onnx_path), providers=providers)
-        self.input_name = self.session.get_inputs()[0].name
-        self._embed_idx = 1
-        for i, o in enumerate(self.session.get_outputs()):
-            if o.shape and o.shape[-1] == embed_dim:
-                self._embed_idx = i
-                break
-        print(f"Perch ONNX loaded: embed_idx={self._embed_idx}")
-
-    @torch.no_grad()
-    def embed(self, waveforms_5s):
-        """waveforms_5s: (B, 160000) float32, returns (B, 1536) embeddings."""
-        results = self.session.run(None, {self.input_name: waveforms_5s.cpu().numpy()})
-        return torch.from_numpy(results[self._embed_idx]).float()
 
 
 class DistillHead(nn.Module):
@@ -96,16 +107,18 @@ class GeMFreqPool(nn.Module):
 
 
 class ResNetTrunk(nn.Module):
-    """ResNet-18 up to layer4 with 1-channel input and NO avgpool / fc,
-    so the output keeps its (freq, time) layout: (B, 512, F/32, T/32)."""
+    """ResNet-18 up to layer4 with NO avgpool / fc, so the output keeps its
+    (freq, time) layout: (B, 512, F/32, T/32)."""
 
-    def __init__(self, pretrained=True):
+    def __init__(self, in_chans=3, pretrained=True):
         super().__init__()
         weights = tv_models.ResNet18_Weights.DEFAULT if pretrained else None
         r = tv_models.resnet18(weights=weights)
-        conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        if pretrained:  # keep ImageNet filters by summing over RGB
-            conv1.weight.data = r.conv1.weight.data.sum(dim=1, keepdim=True)
+        conv1 = r.conv1
+        if in_chans != 3:
+            conv1 = nn.Conv2d(in_chans, 64, kernel_size=7, stride=2, padding=3, bias=False)
+            if pretrained:  # keep ImageNet filters by averaging over RGB
+                conv1.weight.data = r.conv1.weight.data.mean(dim=1, keepdim=True).repeat(1, in_chans, 1, 1)
         self.features = nn.Sequential(conv1, r.bn1, r.relu, r.maxpool,
                                       r.layer1, r.layer2, r.layer3, r.layer4)
         self.out_dim = r.fc.in_features
@@ -115,25 +128,37 @@ class ResNetTrunk(nn.Module):
 
 
 class BirdSEDModel(nn.Module):
-    """ResNet-18 trunk + Model_1's SED head:
+    """ResNet-18 trunk + Model_1's SED head (head="sed"):
     - GeMFreq pooling (learnable, sharper than mean)
     - 512-dim bottleneck with dropout
     - attention-weighted clip logits from frame logits
     - distillation: GAP+Linear branch for MSE to Perch (training only)
     - stop gradient: backbone trains from distillation only
 
+    head="pooled" is the plain ResNet-18 baseline: global avgpool -> dropout -> fc.
+    Its "framewise" logits are the fc applied to each time step of the
+    freq-averaged map, so clip = mean over time of framewise.
+
     Ablation switches: freq_pool ("gem"|"mean"), time_pool ("att"|"mean"),
     stop_grad_cls (None -> same as use_distill).
     """
 
-    def __init__(self, num_classes=234, hidden_dim=512, pretrained=True,
-                 use_distill=True, embed_dim=1536, stop_grad_cls=None,
-                 freq_pool="gem", time_pool="att"):
+    def __init__(self, num_classes=234, hidden_dim=512, pretrained=True, in_chans=3,
+                 head="sed", use_distill=True, embed_dim=1536, stop_grad_cls=None,
+                 freq_pool="gem", time_pool="att", dropout=0.2):
         super().__init__()
-        self.backbone = ResNetTrunk(pretrained=pretrained)
+        self.backbone = ResNetTrunk(in_chans=in_chans, pretrained=pretrained)
         self.backbone_dim = self.backbone.out_dim
+        self.head = head
         self.stop_grad_cls = use_distill if stop_grad_cls is None else stop_grad_cls
         self.time_pool = time_pool
+        if use_distill:
+            self.distill_head = DistillHead(self.backbone_dim, embed_dim)
+
+        if head == "pooled":
+            self.drop = nn.Dropout(dropout)
+            self.fc = nn.Linear(self.backbone_dim, num_classes)
+            return
 
         self.gem_freq = GeMFreqPool(p_init=3.0 if freq_pool == "gem" else 1.0,
                                     learnable=freq_pool == "gem")
@@ -149,26 +174,31 @@ class BirdSEDModel(nn.Module):
         nn.init.xavier_uniform_(self.cla.weight)
         nn.init.zeros_(self.att.bias)
         nn.init.zeros_(self.cla.bias)
-        if use_distill:
-            self.distill_head = DistillHead(self.backbone_dim, embed_dim)
+
+    def _heads(self, h):
+        """Feature map (B, C, F, T) -> clip logits (B, K), framewise (B, K, T), attention (B, K, T)."""
+        h_cls = h.detach() if self.stop_grad_cls else h
+        if self.head == "pooled":
+            h_t = self.drop(h_cls.mean(dim=2))                          # (B, C, T)
+            framewise = self.fc(h_t.permute(0, 2, 1)).permute(0, 2, 1)  # (B, K, T)
+            att = torch.full_like(framewise, 1.0 / framewise.shape[-1])
+            return framewise.mean(dim=2), framewise, att
+        h_cls = self.gem_freq(h_cls)                                    # (B, C, T)
+        h_cls = self.dense(h_cls.permute(0, 2, 1)).permute(0, 2, 1)     # (B, 512, T)
+        norm_att = torch.softmax(torch.tanh(self.att(h_cls)), dim=-1)
+        if self.time_pool == "mean":
+            norm_att = torch.full_like(norm_att, 1.0 / norm_att.shape[-1])
+        framewise = self.cla(h_cls)
+        return torch.sum(norm_att * framewise, dim=2), framewise, norm_att
 
     def forward(self, x, return_framewise=False, return_distill=False):
         h = self.backbone(x)  # (B, C, F, T) -- no pooling before the head
         distill_emb = None
         if return_distill and hasattr(self, "distill_head"):
             distill_emb = self.distill_head(h)
+        clip_logits, framewise, _ = self._heads(h)
 
-        h_cls = h.detach() if self.stop_grad_cls else h
-        h_cls = self.gem_freq(h_cls)                                   # (B, C, T)
-        h_cls = self.dense(h_cls.permute(0, 2, 1)).permute(0, 2, 1)    # (B, 512, T)
-
-        norm_att = torch.softmax(torch.tanh(self.att(h_cls)), dim=-1)
-        if self.time_pool == "mean":
-            norm_att = torch.full_like(norm_att, 1.0 / norm_att.shape[-1])
-        framewise_logits = self.cla(h_cls)
-        clip_logits = torch.sum(norm_att * framewise_logits, dim=2)
-
-        fw = framewise_logits.permute(0, 2, 1) if return_framewise else None
+        fw = framewise.permute(0, 2, 1) if return_framewise else None
         if return_framewise and return_distill:
             return clip_logits, fw, distill_emb
         if return_framewise:
@@ -177,9 +207,26 @@ class BirdSEDModel(nn.Module):
             return clip_logits, distill_emb
         return clip_logits
 
+    @torch.no_grad()
+    def attention_maps(self, x):
+        """For heatmaps. Returns
+        time_att (B, K, T')   -- attention weights over time per class (uniform for pooled),
+        cam      (B, K, F', T') -- class-activation logits per (freq, time) cell: the
+                                   classifier applied to every cell of the un-pooled map,
+        clip_prob (B, K).
+        """
+        h = self.backbone(x)
+        clip, _, att = self._heads(h)
+        cells = h.permute(0, 2, 3, 1)                                   # (B, F, T, C)
+        if self.head == "pooled":
+            cam = self.fc(cells)
+        else:
+            cam = F.linear(self.dense(cells), self.cla.weight.squeeze(-1), self.cla.bias)
+        return {"time_att": att, "cam": cam.permute(0, 3, 1, 2), "clip_prob": torch.sigmoid(clip)}
+
 
 class SEDExportWrapper(nn.Module):
-    """Inference graph for ONNX: mel -> (clip_logits, framewise_logits).
+    """Inference graph for ONNX: features -> (clip_logits, framewise_logits).
     The distillation head is not used, so distillation costs nothing at inference."""
 
     def __init__(self, model):

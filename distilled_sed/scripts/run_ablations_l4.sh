@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-# Run all ablation variants on ONE L4 (g2-standard-16: 8 cores / 16 vCPU, 64 GB RAM).
+# Full study on ONE L4 (GCP g2-standard-16: 8 cores / 16 vCPU, 64 GB RAM).
 #
-# A single run cannot saturate the L4 (ResNet-18 is small; the bottleneck is the
-# Perch teacher + data loading), so 3 lanes share the GPU. Each lane gets
-# 4 DataLoader workers -> 3 x (1 main + 4 workers) = 15 of 16 vCPUs.
-# Variants are balanced so each lane has similar cost (no_distill skips Perch).
+# Step 1 runs Perch v2 once over every 5 s window (pseudo-labels + cached
+# embeddings). Step 2 trains the variants in 3 parallel lanes sharing the GPU
+# (Perch is no longer run during training, so each run is light); each lane
+# has 4 DataLoader workers -> 3 x (1 + 4) = 15 of 16 vCPUs. Step 3 scores
+# everything, renders attention heatmaps and measures CPU inference cost.
 #
 # Usage (from repo root):
 #   export COMP_DIR=/data/birdclef-2026
 #   export WAVEFORM_CACHE_DIR=/data/waveform_cache
-#   export PERCH_ONNX_PATH=/data/perch_v2_no_dft.onnx
+#   export PERCH_ONNX_PATH=/data/perch_v2.onnx        # needs "label" + "embedding" outputs
+#   export PERCH_LABELS=/data/perch_v2_labels.csv     # Perch v2 assets/labels.csv
+#   export PSEUDO_DIR=/data/pseudo
 #   bash distilled_sed/scripts/run_ablations_l4.sh            # full study
 #   PILOT=1 bash distilled_sed/scripts/run_ablations_l4.sh    # 2 folds x 3 epochs timing check
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-: "${COMP_DIR:?}" "${WAVEFORM_CACHE_DIR:?}" "${PERCH_ONNX_PATH:?}"
+: "${COMP_DIR:?}" "${WAVEFORM_CACHE_DIR:?}" "${PERCH_ONNX_PATH:?}" "${PERCH_LABELS:?}" "${PSEUDO_DIR:?}"
 
 OUT=${OUT:-runs/ablations}
 export NUM_WORKERS=${NUM_WORKERS:-4}
@@ -23,10 +26,19 @@ EXTRA=(--skip-existing)
 if [[ "${PILOT:-0}" == 1 ]]; then OUT=runs/pilot; EXTRA+=(--folds 0 1 --epochs 3); fi
 mkdir -p "$OUT/logs"
 
+# ---- 1. Perch pseudo-labels (once; reused by every run)
+if [[ ! -f "$PSEUDO_DIR/sc_targets_fold4.npy" ]]; then
+  OMP_NUM_THREADS=8 python -m distilled_sed.pseudo_label \
+    --comp-dir "$COMP_DIR" --waveform-cache "$WAVEFORM_CACHE_DIR" \
+    --perch-onnx "$PERCH_ONNX_PATH" --perch-labels "$PERCH_LABELS" --out "$PSEUDO_DIR" \
+    2>&1 | tee "$OUT/logs/pseudo_label.log"
+fi
+
+# ---- 2. training lanes (baselines first so they finish early)
 LANES=(
-  "full no_mixup no_rare_upsample"
-  "distill_no_stopgrad mean_freq_pool no_specaug"
-  "mean_time_pool no_soundscape_data no_distill"
+  "resnet_baseline full no_pseudo_focal no_mixup no_rare_upsample perch_attn_probe"
+  "no_distill single_channel_mel mean_freq_pool no_specaug distill_no_stopgrad"
+  "no_pseudo_sc multires_mel mean_time_pool no_soundscape_data"
 )
 pids=()
 for i in "${!LANES[@]}"; do
@@ -39,6 +51,8 @@ for i in "${!LANES[@]}"; do
 done
 fail=0; for p in "${pids[@]}"; do wait "$p" || fail=1; done
 
+# ---- 3. score, cost, heatmaps
 python -m distilled_sed.ablations.evaluate --runs "$OUT" --taxonomy "$COMP_DIR/taxonomy.csv"
-python -m distilled_sed.ablations.benchmark_cost --threads 1 | tee "$OUT/cost.txt"
+python -m distilled_sed.ablations.benchmark_cost --threads 1 --perch-onnx "$PERCH_ONNX_PATH" | tee "$OUT/cost.txt"
+echo "Attention heatmaps: $OUT/*/attention_heatmaps.zip"
 exit $fail
