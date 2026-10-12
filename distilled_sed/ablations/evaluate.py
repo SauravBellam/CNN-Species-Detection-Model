@@ -22,7 +22,10 @@ RARE_MAX, COMMON_MIN = 20, 100  # focal training clips per species
 
 
 def load_run(path):
-    d = dict(np.load(path, allow_pickle=False))
+    # Our own run outputs: some string columns (e.g. filenames) can be saved as object arrays,
+    # so allow pickles and turn any object array into plain strings.
+    z = np.load(path, allow_pickle=True)
+    d = {k: (z[k].astype(str) if z[k].dtype == object else z[k]) for k in z.files}
     has = ~np.isnan(d["blend"][:, 0]) & d["ns22"]
     order = np.lexsort((d["start_sec"][has], d["filename"][has]))  # file, then time
     sel = np.where(has)[0][order]
