@@ -101,7 +101,6 @@ def bench_perch_probe(cfg, args):
 REFERENCE = {  # used when --runs is not given
     "full": {"HEAD": "sed", "STACK_MODE": "delta"},
     "single_channel_mel": {"HEAD": "sed", "STACK_MODE": "single"},
-    "multires_mel": {"HEAD": "sed", "STACK_MODE": "multires"},
     "delta_128mel": {"HEAD": "sed", "STACK_MODE": "delta", "N_MELS": 128},
     "resnet_baseline": {"HEAD": "pooled", "STACK_MODE": "delta"},
 }

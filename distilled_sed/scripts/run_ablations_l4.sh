@@ -24,8 +24,10 @@ OUT=${OUT:-runs/ablations}
 export CONCURRENT_RUNS=3   # lanes sharing the GPU; used to estimate GPU-hours per run
 export NUM_WORKERS=${NUM_WORKERS:-4}
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1   # stop torch/numpy oversubscribing the 16 vCPUs
-EXTRA=(--skip-existing)
-if [[ "${PILOT:-0}" == 1 ]]; then OUT=runs/pilot; EXTRA+=(--folds 0 1 --epochs 3); fi
+# Quick-ablation budget: 3 of the 5 CV folds, EPOCHS / MAX_STEPS_PER_EPOCH from model1_sed.py
+# (10 epochs x 600 batches). Pilot: 1 fold x 2 epochs, just to prove everything runs end to end.
+EXTRA=(--skip-existing --folds ${FOLDS:-0 1 2})
+if [[ "${PILOT:-0}" == 1 ]]; then OUT=runs/pilot; EXTRA=(--skip-existing --folds 0 --epochs 2); fi
 mkdir -p "$OUT/logs"
 
 # ---- 1. Perch pseudo-labels (once; reused by every run)
@@ -36,11 +38,17 @@ if [[ ! -f "$PSEUDO_DIR/sc_targets_fold4.npy" ]]; then
     2>&1 | tee "$OUT/logs/pseudo_label.log"
 fi
 
+# ---- 1b. precompute log-mel spectrograms of every window (once)
+if [[ ! -f "$PSEUDO_DIR/sc_mel.npy" ]]; then
+  python -m distilled_sed.precompute_mels --waveform-cache "$WAVEFORM_CACHE_DIR" --pseudo-dir "$PSEUDO_DIR" \
+    2>&1 | tee "$OUT/logs/precompute_mels.log"
+fi
+
 # ---- 2. training lanes (baselines first so they finish early)
 LANES=(
   "resnet_baseline full no_pseudo_focal no_mixup no_rare_upsample perch_attn_probe"
   "no_distill single_channel_mel mean_freq_pool no_specaug distill_no_stopgrad"
-  "no_pseudo_sc multires_mel mean_time_pool no_soundscape_data"
+  "no_pseudo_sc mean_time_pool no_soundscape_data"
 )
 pids=()
 for i in "${!LANES[@]}"; do

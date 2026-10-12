@@ -114,7 +114,8 @@ ALPHA_DISTILL     = 1.0   # MSE loss weight
 
 # --- Training ---
 FOLDS  = [0, 1, 2, 3, 4]
-EPOCHS = 25
+EPOCHS = 10                 # notebook: 25 -- cut for quick ablations
+MAX_STEPS_PER_EPOCH = 600   # notebook: one full pass (~2300 batches); capped for quick ablations
 BATCH  = 16 if DEBUG else 64        # used 64 locally, 16 for Kaggle
 LR     = 5e-4
 WD     = 1e-4
@@ -161,7 +162,7 @@ USE_PSEUDO_FOCAL = True   # Perch-localised soft targets per 5 s focal window (e
 USE_PSEUDO_SC    = True   # add unlabelled soundscapes with fused Perch + prior soft targets
 
 # --- Input features / head ---
-STACK_MODE = "delta"      # "delta" (log-mel, d, dd) | "multires" | "single" (1-ch notebook input)
+STACK_MODE = "delta"      # "delta" (log-mel, d, dd) | "single" (1-ch notebook input)
 HEAD       = "sed"        # "sed" (GeM + attention) | "pooled" (plain ResNet-18 baseline)
 
 # --- Attention heatmap tracking ---
@@ -309,6 +310,12 @@ audio_cache_meta = focal_win.merge(audio_for_split[["original_idx", "fold"]],
                                    on="original_idx", how="inner")
 print(f"Focal 5 s windows: {len(audio_cache_meta)}")
 
+# precomputed log-mel spectrograms (distilled_sed/precompute_mels.py), same row order
+FOCAL_MEL = np.load(PSEUDO_DIR / "focal_mel.npy", mmap_mode="r")
+SC_MEL = np.load(PSEUDO_DIR / "sc_mel.npy", mmap_mode="r")
+assert FOCAL_MEL.shape[1] == N_MELS, f"focal_mel.npy has {FOCAL_MEL.shape[1]} mels, config N_MELS={N_MELS}"
+MEL_SHAPE = FOCAL_MEL.shape[1:]
+
 sc_win = pd.read_parquet(PSEUDO_DIR / "sc_windows.parquet")
 SC_E = np.load(PSEUDO_DIR / "sc_emb.npy", mmap_mode="r")
 SC_EMB_ROW = {(f, int(t)): i for i, (f, t) in enumerate(zip(sc_win["filename"], sc_win["start_sec"]))}
@@ -388,6 +395,12 @@ from .models import MelFeatures, SpecAugment as _SpecAug, BirdSEDModel, SEDExpor
 def MelSpecTransform():
     """Stacked + standardised log-mel features (see models.MelFeatures)."""
     return MelFeatures(SR, N_FFT, HOP_LENGTH, N_MELS, FMIN, FMAX, stack_mode=STACK_MODE)
+
+from .models import MelStack
+
+def FeatureStack():
+    """Precomputed log-mel dB (B, 1, F, T) -> stacked + standardised model input."""
+    return MelStack(STACK_MODE)
 
 IN_CHANS = 1 if STACK_MODE == "single" else 3
 
@@ -504,13 +517,22 @@ if _labeled_rows:
 # FocalDS -- with Focal-Focal AND Focal-Soundscape MixUp
 # ------------------------------------------------------------------
 _ZERO_EMB = np.zeros(PERCH_EMBED_DIM, np.float32)
+_ZERO_MEL = np.full(MEL_SHAPE, -80.0, np.float32)
+
+def _mix_db(a, b, lam):
+    """MixUp of two log-mel (dB) spectrograms, done in the power domain (= mixing the audio)."""
+    return (10 * np.log10(lam * 10 ** (a / 10) + (1 - lam) * 10 ** (b / 10) + 1e-10)).astype(np.float32)
+
+def _sc_mel(filename, start_sec):
+    i = SC_EMB_ROW.get((filename, int(start_sec)))
+    return None if i is None else np.asarray(SC_MEL[i], np.float32)
 
 def _sc_emb(filename, start_sec):
     i = SC_EMB_ROW.get((filename, int(start_sec)))
     return (_ZERO_EMB, 0.0) if i is None else (np.asarray(SC_E[i], np.float32), 1.0)
 
 def _item(wav, lb, src, emb, has_emb):
-    """(waveform, label, weight, mask, source, perch_emb, has_emb)"""
+    """(log-mel dB (1, F, T), label, weight, mask, source, perch_emb, has_emb)"""
     return (torch.from_numpy(np.asarray(wav, np.float32)).unsqueeze(0),
             torch.from_numpy(np.asarray(lb, np.float32)),
             torch.ones(NUM_CLASSES), torch.ones(NUM_CLASSES), src,
@@ -531,9 +553,7 @@ class FocalDS(Dataset):
     def __len__(self): return len(self.df)
 
     def _load_chunk(self, r):
-        w = load_focal(r["cache_file"])
-        if w is None: return None, None, None
-        ch = extract_chunk_np(w, int(r["start_sec"]) * SR, TRAIN_SAMPLES)
+        ch = np.asarray(FOCAL_MEL[int(r["row"])], np.float32)  # precomputed 5 s log-mel
         if USE_PSEUDO_FOCAL:
             lb = np.asarray(FOCAL_T[int(r["row"])], np.float32)
         else:
@@ -548,7 +568,7 @@ class FocalDS(Dataset):
     def __getitem__(self, i):
         ch1, lb1, e1 = self._load_chunk(self.df.iloc[i])
         if ch1 is None:
-            return _item(np.zeros(TRAIN_SAMPLES), np.zeros(NUM_CLASSES), "focal_missing", _ZERO_EMB, 0.0)
+            return _item(_ZERO_MEL, np.zeros(NUM_CLASSES), "focal_missing", _ZERO_EMB, 0.0)
 
         # Focal-Focal MixUp
         if USE_FOCAL_MIXUP and self.aug and np.random.random() < MIXUP_PROB:
@@ -558,7 +578,7 @@ class FocalDS(Dataset):
                 if ch2 is not None: break
             if ch2 is not None:
                 lam = np.random.beta(MIXUP_ALPHA, MIXUP_ALPHA)
-                ch_mix = apply_aug((lam * ch1 + (1 - lam) * ch2).astype(np.float32))
+                ch_mix = _mix_db(ch1, ch2, lam)
                 lb = np.maximum(lb1, lb2) if MIXUP_HARD else (lam * lb1 + (1 - lam) * lb2)
                 return _item(ch_mix, lb, "focal", lam * e1 + (1 - lam) * e2, 1.0)
 
@@ -569,19 +589,18 @@ class FocalDS(Dataset):
             eligible = meta_df_sc[meta_df_sc["fold"] != self.fold_k] if self.fold_k is not None else meta_df_sc
             if len(eligible) > 0:
                 sc_row = eligible.iloc[np.random.randint(len(eligible))]
-                sc_wav = load_sc_waveform_from(cache_dir, sc_row["cache_file"])
-                if sc_wav is not None and len(sc_wav) >= TRAIN_SAMPLES:
-                    sc_chunk = extract_chunk_np(sc_wav, int(sc_row["start_sec"]) * SR, TRAIN_SAMPLES)
+                sc_chunk = _sc_mel(sc_row["filename"], sc_row["start_sec"])
+                if sc_chunk is not None:
                     lam = np.random.beta(FOCAL_SC_MIXUP_ALPHA, FOCAL_SC_MIXUP_ALPHA)
-                    ch_mix = apply_aug((lam * ch1 + (1 - lam) * sc_chunk).astype(np.float32))
+                    ch_mix = _mix_db(ch1, sc_chunk, lam)
                     lb_sc = labels[int(sc_row["label_idx"])].astype(np.float32)
                     lb = np.maximum(lb1, lb_sc) if MIXUP_HARD else lam * lb1 + (1 - lam) * lb_sc
                     e_sc, has = _sc_emb(sc_row["filename"], sc_row["start_sec"])
                     emb = lam * e1 + (1 - lam) * e_sc if has else e1
                     return _item(ch_mix, lb, "focal", emb, 1.0)
 
-        # No MixUp
-        if self.aug: ch1 = apply_aug(ch1)
+        # No MixUp (waveform gain/noise augmentation dropped with precomputed spectrograms;
+        # SpecAugment still runs on the GPU)
         return _item(ch1, lb1, "focal", e1, 1.0)
 
 # ------------------------------------------------------------------
@@ -593,13 +612,9 @@ class ScDS(Dataset):
     def __len__(self): return len(self.Y)
     def __getitem__(self, i):
         row = self.df.iloc[i]
-        wav_full = load_sc_waveform_from(WAVEFORM_CACHE_DIR, row.get("cache_file")) \
-                   if row.get("cache_file") else None
-        if wav_full is None:
-            chunk = np.zeros(TRAIN_SAMPLES, np.float32)
-        else:
-            chunk = extract_chunk_np(wav_full, int(row["start_sec"]) * SR, TRAIN_SAMPLES)
-            if self.aug: chunk = apply_aug(chunk)
+        chunk = _sc_mel(row["filename"], row["start_sec"])
+        if chunk is None:
+            chunk = _ZERO_MEL
         emb, has = _sc_emb(row["filename"], row["start_sec"])
         return _item(chunk, self.Y[i], "sc", emb, has)
 
@@ -612,10 +627,7 @@ class PseudoScDS(Dataset):
     def __len__(self): return len(self.df)
     def __getitem__(self, i):
         r = self.df.iloc[i]
-        w = np.load(PSEUDO_DIR / "sc_wave" / f"{Path(r['filename']).stem}.npy", mmap_mode="r")
-        s0 = int(r["start_sec"]) * SR
-        chunk = np.asarray(w[s0:s0 + TRAIN_SAMPLES], np.float32) / 32767.0
-        if self.aug: chunk = apply_aug(chunk)
+        chunk = np.asarray(SC_MEL[int(r["row"])], np.float32)
         return _item(chunk, self.T[int(r["row"])], "pseudo_sc", SC_E[int(r["row"])], 1.0)
 
 # ------------------------------------------------------------------
@@ -682,20 +694,12 @@ print("OK Data pipeline ready")
 # =================================================================
 
 def _load_val_waveforms(val_sc_df):
-    """Load validation waveforms (always 5s)."""
-    sc_file_meta = pd.read_csv(WAVEFORM_CACHE_DIR / "soundscape_file_meta.csv")
-    sc_file_dict = dict(zip(sc_file_meta["filename"], sc_file_meta["cache_file"]))
-    wavs = []
-    for _, row in val_sc_df.iterrows():
-        cf = sc_file_dict.get(row["filename"])
-        if cf is not None:
-            w = load_sc_waveform_from(WAVEFORM_CACHE_DIR, cf)
-            if w is not None:
-                chunk = extract_chunk_np(w, int(row["start_sec"]) * SR, VAL_SAMPLES)
-                wavs.append(torch.from_numpy(chunk.astype(np.float32)).unsqueeze(0))
-            else: wavs.append(torch.zeros(1, VAL_SAMPLES))
-        else: wavs.append(torch.zeros(1, VAL_SAMPLES))
-    return wavs
+    """Validation windows as precomputed log-mel dB tensors (1, F, T) (name kept from the notebook)."""
+    out = []
+    for fn, st in zip(val_sc_df["filename"], val_sc_df["start_sec"]):
+        m = _sc_mel(fn, st)
+        out.append(torch.from_numpy(_ZERO_MEL if m is None else m).unsqueeze(0))
+    return out
 
 def _predict_from_waveforms(model, mel_transform, wav_list, batch_size=64):
     """Inference: mel -> model -> sigmoid. Distillation head is NOT used."""
@@ -744,12 +748,12 @@ def train_fold(fold_k):
     active = build_active_datasets(fold_k)
     names, datasets, sizes = zip(*active)
     mds = ConcatDataset(list(datasets))
-    nst = max(100, int(sum(sizes) / BATCH))
+    nst = min(MAX_STEPS_PER_EPOCH, max(100, int(sum(sizes) / BATCH)))
 
     print(f"  Streams: {dict(zip(names, sizes))}  steps/ep: {nst}")
 
     m = make_model()
-    mel_transform = MelSpecTransform().to(device)
+    mel_transform = FeatureStack().to(device)   # precomputed log-mel -> stacked input
     spec_augment = SpecAugment().to(device)
 
     opt = torch.optim.AdamW(m.parameters(), lr=LR, weight_decay=WD)
@@ -934,7 +938,7 @@ else:
                 species=np.array([PRIMARY_LABELS[c] for c in _tr["cls"]]),
                 ns22_auc=np.array(hist["ns22_macro"]))
     
-        mel_tf = MelSpecTransform().to(device)
+        mel_tf = FeatureStack().to(device)
         val_wavs_k = _load_val_waveforms(val_sc_df_k)
     
         if best_macro_state is not None:

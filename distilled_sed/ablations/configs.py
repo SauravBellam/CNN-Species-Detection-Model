@@ -25,7 +25,6 @@ TRAIN_VARIANTS = {
     "no_pseudo_focal": {"USE_PSEUDO_FOCAL": False},
     "no_pseudo_sc": {"USE_PSEUDO_SC": False},
     "single_channel_mel": {"STACK_MODE": "single"},
-    "multires_mel": {"STACK_MODE": "multires"},
     "mean_freq_pool": {"FREQ_POOL": "mean"},
     "mean_time_pool": {"TIME_POOL": "mean"},
     "no_mixup": {"USE_FOCAL_MIXUP": False, "USE_FOCAL_SC_MIXUP": False},
@@ -64,8 +63,6 @@ HYPOTHESES = [
     ("single_channel_mel", "auc_Insecta", "drop",
      "Delta channels encode modulation / onsets; insects and frogs are defined by "
      "repetition rate, so dropping them should hurt non-bird taxa more."),
-    ("multires_mel", "auc_soundscape_macro", "~same",
-     "Three STFT resolutions cost 3x the feature time; expect little gain over deltas."),
     ("no_distill", "auc_rare", "drop",
      "Perch embeddings carry knowledge about species with few focal clips."),
     ("no_distill", "ece", "rise",

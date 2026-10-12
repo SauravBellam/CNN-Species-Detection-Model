@@ -9,8 +9,8 @@ Changes vs the notebook:
     global average pool and fc layer are removed so the attention head sees the
     full (channel, freq, time) feature map -- pooling before attention threw
     away the time axis the attention is supposed to weight;
-  * input is a 3-channel stack of log-mel spectrograms (see MelFeatures), so
-    the ImageNet conv1 weights are used as-is;
+  * input is a 3-channel stack of log-mel spectrograms (log-mel, delta,
+    delta-delta; see MelStack), so the ImageNet conv1 weights are used as-is;
   * head="pooled" gives the plain ResNet-18 baseline (avgpool + fc);
   * attention_maps() exposes the attention / class-activation maps for the
     heatmap tracking in attention_viz.py.
@@ -22,47 +22,67 @@ import torchaudio
 import torchvision.models as tv_models
 
 
-class MelFeatures(nn.Module):
-    """Waveform (B, 1, N) or (B, N) -> stacked, standardised log-mel (B, C, n_mels, T).
+class LogMel(nn.Module):
+    """Waveform (B, 1, N) or (B, N) -> log-mel in dB (B, 1, n_mels, T), 80 dB floor per window.
+    This is what precompute_mels.py stores on disk (float16)."""
+
+    def __init__(self, sr=32000, n_fft=2048, hop_length=512, n_mels=256, fmin=20, fmax=16000, top_db=80):
+        super().__init__()
+        self.mel = torchaudio.transforms.MelSpectrogram(
+            sample_rate=sr, n_fft=n_fft, hop_length=hop_length,
+            n_mels=n_mels, f_min=fmin, f_max=fmax, power=2.0)
+        self.db = torchaudio.transforms.AmplitudeToDB(top_db=top_db)
+
+    def forward(self, wav):
+        if wav.dim() == 2:
+            wav = wav.unsqueeze(1)
+        return self.db(self.mel(wav))
+
+
+class MelStack(nn.Module):
+    """Log-mel dB (B, 1, F, T) -> stacked, standardised input (B, C, F, T).
 
     stack_mode:
-      "delta"    -> [log-mel, delta, delta-delta]            (3 ch, one STFT; default)
-      "multires" -> log-mel at n_fft = n_fft/2, n_fft, 2*n_fft (3 ch, same hop/frames)
-      "single"   -> log-mel only                              (1 ch, the notebook's input)
+      "delta"  -> [log-mel, delta, delta-delta]   (3 ch; default)
+      "single" -> log-mel only                     (1 ch, the notebook's input)
     Each channel is standardised per sample, as the notebook did for its 1 channel.
     """
 
-    def __init__(self, sr=32000, n_fft=2048, hop_length=512, n_mels=256, fmin=20, fmax=16000,
-                 stack_mode="delta", top_db=80):
+    def __init__(self, stack_mode="delta"):
         super().__init__()
+        assert stack_mode in ("delta", "single"), stack_mode
         self.stack_mode = stack_mode
-        ffts = [n_fft // 2, n_fft, n_fft * 2] if stack_mode == "multires" else [n_fft]
-        self.mels = nn.ModuleList([
-            torchaudio.transforms.MelSpectrogram(
-                sample_rate=sr, n_fft=f, hop_length=hop_length,
-                n_mels=n_mels, f_min=fmin, f_max=fmax, power=2.0)
-            for f in ffts
-        ])
-        self.db = torchaudio.transforms.AmplitudeToDB(top_db=top_db)
 
     @property
     def n_channels(self):
         return 1 if self.stack_mode == "single" else 3
 
-    def forward(self, wav):
-        if wav.dim() == 2:
-            wav = wav.unsqueeze(1)
-        chans = [self.db(m(wav)) for m in self.mels]          # each (B, 1, F, T)
-        x = chans[0]
+    def forward(self, x):
+        x = x.float()
         if self.stack_mode == "delta":
             d1 = torchaudio.functional.compute_deltas(x)
-            d2 = torchaudio.functional.compute_deltas(d1)
-            x = torch.cat([x, d1, d2], dim=1)
-        elif self.stack_mode == "multires":
-            x = torch.cat(chans, dim=1)
+            x = torch.cat([x, d1, torchaudio.functional.compute_deltas(d1)], dim=1)
         mu = x.mean(dim=(2, 3), keepdim=True)
         sd = x.std(dim=(2, 3), keepdim=True)
         return (x - mu) / (sd + 1e-6)
+
+
+class MelFeatures(nn.Module):
+    """Waveform -> model input in one step (LogMel then MelStack). Used at inference,
+    where audio arrives raw; training reads the precomputed LogMel output instead."""
+
+    def __init__(self, sr=32000, n_fft=2048, hop_length=512, n_mels=256, fmin=20, fmax=16000,
+                 stack_mode="delta", top_db=80):
+        super().__init__()
+        self.logmel = LogMel(sr, n_fft, hop_length, n_mels, fmin, fmax, top_db)
+        self.stack = MelStack(stack_mode)
+
+    @property
+    def n_channels(self):
+        return self.stack.n_channels
+
+    def forward(self, wav):
+        return self.stack(self.logmel(wav))
 
 
 class SpecAugment(nn.Module):
