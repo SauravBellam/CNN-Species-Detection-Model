@@ -184,6 +184,14 @@ def sc_file_folds(sc_cache_meta):
     return dict(zip(files["filename"], files["fold"]))
 
 
+def extract_chunk(w, start):
+    """Same rule as model1_sed.extract_chunk_np."""
+    if len(w) <= WIN:
+        return np.pad(w, (WIN - len(w), 0)).astype(np.float32)
+    start = min(start, len(w) - WIN)
+    return w[start:start + WIN].astype(np.float32)
+
+
 def load_ogg(path):
     y, sr = sf.read(path, dtype="float32", always_2d=False)
     if y.ndim == 2:
@@ -240,8 +248,9 @@ def main():
                 continue
             w = torch.load(p, map_location="cpu").float().numpy().reshape(-1) / 32767.0
             nw = int(min(args.max_windows_per_clip, max(1, np.ceil(len(w) / WIN))))
-            w = np.pad(w[:nw * WIN], (0, max(0, nw * WIN - len(w))))
-            logits, emb, sp = perch(w.reshape(nw, WIN).astype(np.float32))
+            # cut windows exactly like model1_sed.extract_chunk_np so Perch labels the same
+            # audio the CNN trains on (short clips left-padded, last window shifted back)
+            logits, emb, sp = perch(np.stack([extract_chunk(w, 5 * k * SR) for k in range(nw)]))
             prob = 1 / (1 + np.exp(-map_scores(logits, bc_idx, mapped, proxies)))
             labels = [str(r.primary_label)]
             try:
