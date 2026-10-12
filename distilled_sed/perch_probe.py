@@ -19,6 +19,8 @@ site cost compared to the distilled ResNet?
         --out runs/ablations/perch_attn_probe
 """
 import argparse
+import json
+import os
 import time
 from pathlib import Path
 
@@ -116,7 +118,12 @@ def main():
     groups = class_groups(primary, dict(zip(tax["primary_label"].astype(str), tax["class_name"].astype(str))),
                           train_df["primary_label"].astype(str).value_counts().reindex(primary).fillna(0).values)
     ns22_all = sc_meta["site"].values != "S22"
-    rows, per_epoch = [], {}   # per_epoch[ep] = list of (val index, probs, train_loss)
+    rows, per_epoch = [], {}
+    (args.out / "config.json").write_text(json.dumps({"kind": "perch_probe", "dim": int(SX.shape[-1]),
+                                                      "frames": int(SX.shape[1]), "NUM_CLASSES": K}))
+    train_t0 = time.time()
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()   # per_epoch[ep] = list of (val index, probs, train_loss)
 
     def predict(model, va):
         model.eval()
@@ -176,6 +183,12 @@ def main():
         em["epoch_seconds"] = float(np.mean([d for _, _, _, d in parts]))
         rows += to_long(args.out.name, "pooled", ep, em)
     write_curves(args.out / "curves.csv", rows)
+    wall, lanes = time.time() - train_t0, int(os.environ.get("CONCURRENT_RUNS", 1))
+    (args.out / "train_cost.json").write_text(json.dumps({
+        "wall_seconds": wall, "epochs": args.epochs, "folds": len(args.folds), "batch": args.batch,
+        "concurrent_runs": lanes, "gpu_hours_est": wall / 3600 / lanes,
+        "peak_gpu_mem_gb": torch.cuda.max_memory_allocated() / 1e9 if torch.cuda.is_available() else 0.0,
+        "note": "excludes the one-off Perch pass in pseudo_label.py (see pseudo_label_cost.json)"}, indent=1))
     np.savez_compressed(
         args.out / "oof.npz", y=Y, ns22=sc_meta["site"].values != "S22",
         filename=sc_meta["filename"].values.astype(str), start_sec=sc_meta["start_sec"].values.astype(int),

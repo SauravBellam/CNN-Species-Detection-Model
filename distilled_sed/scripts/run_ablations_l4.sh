@@ -20,6 +20,7 @@ cd "$(dirname "$0")/../.."
 : "${COMP_DIR:?}" "${WAVEFORM_CACHE_DIR:?}" "${PERCH_ONNX_PATH:?}" "${PERCH_LABELS:?}" "${PSEUDO_DIR:?}"
 
 OUT=${OUT:-runs/ablations}
+export CONCURRENT_RUNS=3   # lanes sharing the GPU; used to estimate GPU-hours per run
 export NUM_WORKERS=${NUM_WORKERS:-4}
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1   # stop torch/numpy oversubscribing the 16 vCPUs
 EXTRA=(--skip-existing)
@@ -51,10 +52,10 @@ for i in "${!LANES[@]}"; do
 done
 fail=0; for p in "${pids[@]}"; do wait "$p" || fail=1; done
 
-# ---- 3. score, cost, heatmaps
+# ---- 3. cost (machine is idle now, so timings are clean), score, graphs
+python -m distilled_sed.ablations.benchmark_cost --runs "$OUT" --perch-onnx "$PERCH_ONNX_PATH" \
+  | tee "$OUT/cost.txt"
 python -m distilled_sed.ablations.evaluate --runs "$OUT" --taxonomy "$COMP_DIR/taxonomy.csv"
-# CPU on purpose: this measures on-site inference cost, not training speed
-python -m distilled_sed.ablations.benchmark_cost --threads 1 --perch-onnx "$PERCH_ONNX_PATH" --csv "$OUT/cost.csv" | tee "$OUT/cost.txt"
 python -m distilled_sed.ablations.plot --runs "$OUT"
 echo "Attention heatmaps: $OUT/*/attention_heatmaps.zip"
 exit $fail

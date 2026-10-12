@@ -13,3 +13,4 @@ librosa
 soundfile
 matplotlib
 pyarrow
+tabulate

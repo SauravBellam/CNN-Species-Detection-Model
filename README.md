@@ -507,6 +507,14 @@ with every metric below plus train/validation loss for every epoch, per fold and
 At the end `ablations/plot.py` writes `<runs>/plots/`: learning curves for every metric across all
 variants, per-variant curves, final-value bar charts per metric, and cost vs quality.
 
+**Compute and bang for buck.** Each run records its training cost (`train_cost.json`: wall time,
+GPU-hours estimate, peak GPU memory, seconds per epoch); `pseudo_label.py` records the one-off Perch
+cost. After training, on an idle machine, `ablations/benchmark_cost.py --runs` rebuilds every variant
+and measures time per prediction (one 5 s window) on CPU with 1 and 4 threads and on GPU, GFLOPs,
+parameters and model size (`cost.csv`). `evaluate.py` joins quality and cost into
+`bang_for_buck.csv`, marks the Pareto frontier (no other variant is both cheaper and better) and the
+AUC gained per extra millisecond over the plain ResNet baseline; `plot.py` draws it.
+
 Metrics: macro ROC-AUC, PR-AUC, LRAP, macro F1@0.5, ECE, Brier, temporal jitter, AUC for rare (<20
 clips) and common (≥100 clips) species, and per-taxon AUC; plus params, size and CPU ms per 5 s
 window from `ablations/benchmark_cost.py`.

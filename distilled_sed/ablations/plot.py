@@ -11,7 +11,8 @@ perch_probe.py), <runs>/ablation_table.csv (evaluate.py) and <runs>/cost.csv
                                the two baselines highlighted, other ablations in gray
   curves_<variant>.png         one variant: every metric, each fold in gray + pooled
   final_<metric>.png           final OOF value per variant, sorted (incl. post-hoc ones)
-  cost_vs_quality.png          CPU ms per 5 s window vs macro ROC-AUC
+  cost_vs_quality.png          macro ROC-AUC vs CPU ms per prediction, GFLOPs and training
+                               GPU-hours, with the Pareto frontier (from bang_for_buck.csv)
 """
 import argparse
 from pathlib import Path
@@ -38,9 +39,6 @@ METRICS = [  # (column, title, lower is better)
     ("auc_Aves", "ROC-AUC, birds", False), ("auc_Amphibia", "ROC-AUC, amphibians", False),
     ("auc_Insecta", "ROC-AUC, insects", False), ("auc_Mammalia", "ROC-AUC, mammals", False),
 ]
-# which benchmark_cost config each variant's inference cost corresponds to
-COST_OF = {"resnet_baseline": "resnet_baseline", "perch_attn_probe": "perch_attn_probe",
-           "single_channel_mel": "single_channel_mel", "multires_mel": "multires_mel"}
 
 
 def style(ax, title):
@@ -134,24 +132,32 @@ def final_bars(table, out):
         plt.close(fig)
 
 
-def cost_vs_quality(table, cost, out):
-    ms = cost.set_index("config")["total_ms"]
-    pts = [(v, ms.get(COST_OF.get(v, "full"))) for v in table.index]
-    pts = [(v, c) for v, c in pts if c is not None and not np.isnan(c)]
-    if not pts:
-        return
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    for v, c in pts:
-        q = table.loc[v, "auc_soundscape_macro"]
-        hi = v in HIGHLIGHT
-        ax.scatter(c, q, s=60 if hi else 30, color=HIGHLIGHT.get(v, CONTEXT),
-                   edgecolor="white", linewidth=2, zorder=3 if hi else 2)
-        if hi or q == table["auc_soundscape_macro"].max():
-            ax.annotate(v, (c, q), xytext=(6, 2), textcoords="offset points", fontsize=8, color=INK)
-    ax.set_xscale("log")
-    ax.set_xlabel("CPU ms per 5 s window (1 thread, log scale)", fontsize=9, color=MUTED)
-    style(ax, "Cost vs quality: macro ROC-AUC (up and left is better)")
-    fig.tight_layout()
+def cost_vs_quality(bfb, out):
+    """Macro AUC against three costs; the line joins the Pareto-optimal variants."""
+    costs = [(c, t, log) for c, t, log in [
+        ("cpu1_ms", "CPU ms per prediction (1 thread)", True),
+        ("gflops", "GFLOPs per prediction", True),
+        ("train_gpu_hours", "Training GPU-hours (est.)", True)] if c in bfb and bfb[c].notna().any()]
+    fig, axes = plt.subplots(1, len(costs), figsize=(5.2 * len(costs), 4.4), squeeze=False)
+    for ax, (col, title, log) in zip(axes[0], costs):
+        d = bfb[[col, "auc_soundscape_macro"]].dropna()
+        d = d[d[col] > 0]
+        for v, (c, q) in d.iterrows():
+            hi = v in HIGHLIGHT
+            ax.scatter(c, q, s=60 if hi else 30, color=HIGHLIGHT.get(v, CONTEXT),
+                       edgecolor="white", linewidth=2, zorder=3 if hi else 2)
+        front = d.sort_values(col)
+        front = front[front["auc_soundscape_macro"] >= front["auc_soundscape_macro"].cummax()]
+        ax.plot(front[col], front["auc_soundscape_macro"], color=MUTED, lw=1, ls="--", zorder=1)
+        for v, (c, q) in front.iterrows():
+            ax.annotate(v, (c, q), xytext=(5, 3), textcoords="offset points", fontsize=7, color=INK)
+        if log:
+            ax.set_xscale("log")
+        ax.set_xlabel(title, fontsize=9, color=MUTED)
+        style(ax, f"Macro ROC-AUC vs {title.split(' (')[0]}")
+    fig.suptitle("Bang for buck: up and left is better; dashed line = Pareto frontier (labelled)",
+                 x=0.01, ha="left", fontsize=10, color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
     fig.savefig(out / "cost_vs_quality.png", dpi=130)
     plt.close(fig)
 
@@ -172,8 +178,8 @@ def main():
     if (runs / "ablation_table.csv").exists():
         table = pd.read_csv(runs / "ablation_table.csv", index_col=0)
         final_bars(table, out)
-        if (runs / "cost.csv").exists():
-            cost_vs_quality(table, pd.read_csv(runs / "cost.csv"), out)
+    if (runs / "bang_for_buck.csv").exists():
+        cost_vs_quality(pd.read_csv(runs / "bang_for_buck.csv", index_col=0), out)
     print(f"Plots -> {out}")
 
 

@@ -890,6 +890,16 @@ else:
     oof_ns22 = np.full((len(sc_cache_meta), NUM_CLASSES), np.nan, dtype=np.float32)
     oof_modes = {k: oof_ns22.copy() for k in ("clip", "fmax", "blend")}  # [ablation hook]
     all_hist = {}
+    # --- compute tracking: architecture config (for benchmark_cost.py) + training cost ---
+    with open(OUT_DIR / "config.json", "w") as _f:
+        json.dump({"kind": "sed", "HEAD": HEAD, "STACK_MODE": STACK_MODE, "FREQ_POOL": FREQ_POOL,
+                   "TIME_POOL": TIME_POOL, "N_MELS": N_MELS, "N_FFT": N_FFT,
+                   "HOP_LENGTH": HOP_LENGTH, "NUM_CLASSES": NUM_CLASSES,
+                   "USE_PERCH_DISTILL": USE_PERCH_DISTILL, "EPOCHS": EPOCHS, "BATCH": BATCH,
+                   "FOLDS": list(FOLDS)}, _f, indent=1)
+    _train_t0, _fold_secs = time.time(), {}
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
     for fold_k in FOLDS:
         print(f"\n{'='*60}")
         print(f"FOLD {fold_k}")
@@ -897,7 +907,9 @@ else:
         vm = sc_cache_meta["fold"].values == fold_k
         val_sc_df_k = sc_cache_meta[vm].reset_index(drop=True)
     
+        _tf = time.time()
         best_ns22_state, best_macro_state, hist = train_fold(fold_k)
+        _fold_secs[fold_k] = time.time() - _tf
         all_hist[fold_k] = hist
 
         # attention heatmap tracking for this fold -> OUT_DIR/attention/fold{k}.npz
@@ -966,6 +978,20 @@ if MODE != "train":
 else:
 
     has = ~np.isnan(oof_ns22[:, 0])
+    # training compute. Runs share the GPU (CONCURRENT_RUNS lanes), so the GPU-hours
+    # estimate divides wall time by the number of lanes running at once.
+    _wall = time.time() - _train_t0
+    _lanes = int(os.environ.get("CONCURRENT_RUNS", 1))
+    _ep_secs = [em["epoch_seconds"] for h in all_hist.values() for em in h["epoch_metrics"]]
+    with open(OUT_DIR / "train_cost.json", "w") as _f:
+        json.dump({
+            "wall_seconds": _wall, "fold_seconds": {str(k): v for k, v in _fold_secs.items()},
+            "mean_epoch_seconds": float(np.mean(_ep_secs)) if _ep_secs else None,
+            "epochs": EPOCHS, "folds": len(FOLDS), "batch": BATCH,
+            "concurrent_runs": _lanes, "gpu_hours_est": _wall / 3600 / _lanes,
+            "peak_gpu_mem_gb": torch.cuda.max_memory_allocated() / 1e9 if torch.cuda.is_available() else 0.0,
+            "gpu": torch.cuda.get_device_name() if torch.cuda.is_available() else "cpu",
+        }, _f, indent=1)
     # [ablation hook] save everything the ablation evaluator needs
     np.savez_compressed(
         OUT_DIR / "oof.npz", y=Y_SC, ns22=non_s22_mask_sc,

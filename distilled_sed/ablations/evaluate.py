@@ -8,6 +8,7 @@ Writes <runs>/ablation_table.csv (variant x metric), ablation_deltas.csv
 Metrics use non-S22 soundscape windows, like the notebook's primary metric.
 """
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
@@ -64,6 +65,46 @@ def posthoc(mode, d, sel, tax, lam):
     return p
 
 
+def bang_for_buck(table, runs):
+    """Quality x cost per variant. Post-hoc variants cost the same as `full` (their extra
+    work -- a table lookup, a few averages -- is negligible next to the network)."""
+    cost = pd.read_csv(runs / "cost.csv", index_col=0)
+    rows = []
+    for v in table.index:
+        base = v if v in cost.index else "full"
+        if base not in cost.index:
+            continue
+        r = {"variant": v, **table.loc[v, ["auc_soundscape_macro", "pr_auc_macro", "lrap",
+                                           "f1_macro", "ece", "auc_rare"]].to_dict(),
+             **cost.loc[base].drop(labels=["note"], errors="ignore").to_dict()}
+        tc = runs / (v if (runs / v / "train_cost.json").exists() else "full") / "train_cost.json"
+        if tc.exists():
+            t = json.loads(tc.read_text())
+            r.update(train_gpu_hours=t.get("gpu_hours_est"), peak_gpu_mem_gb=t.get("peak_gpu_mem_gb"),
+                     mean_epoch_seconds=t.get("mean_epoch_seconds"))
+        rows.append(r)
+    if not rows:
+        return None
+    df = pd.DataFrame(rows).set_index("variant").sort_values("cpu1_ms")
+    # Pareto frontier: no other variant is both cheaper (CPU, 1 thread) and better (macro AUC)
+    q, c = df["auc_soundscape_macro"].values, df["cpu1_ms"].values
+    df["pareto"] = [not np.any((c <= c[i]) & (q >= q[i]) & ((c < c[i]) | (q > q[i])))
+                    for i in range(len(df))]
+    if "resnet_baseline" in df.index:
+        b = df.loc["resnet_baseline"]
+        extra_ms = df["cpu1_ms"] - b["cpu1_ms"]
+        df["auc_gain_vs_baseline"] = df["auc_soundscape_macro"] - b["auc_soundscape_macro"]
+        df["auc_gain_per_extra_ms"] = np.where(extra_ms.abs() > 1e-3,
+                                               df["auc_gain_vs_baseline"] / extra_ms, np.nan)
+    df.to_csv(runs / "bang_for_buck.csv")
+    cols = [c for c in ["auc_soundscape_macro", "cpu1_ms", "gflops", "params_m",
+                        "train_gpu_hours", "auc_gain_per_extra_ms", "pareto"] if c in df.columns]
+    (runs / "bang_for_buck.md").write_text(df[cols].round(4).to_markdown() + "\n")
+    print("\nBang for buck (sorted by CPU ms per prediction):")
+    print(df[cols].round(4).to_string())
+    return df
+
+
 def score(d, sel, p, taxon_classes):
     tc = d["train_counts"]
     return M.all_metrics(d["y"][sel], p, d["filename"][sel], taxon_classes,
@@ -103,6 +144,8 @@ def main():
     print(table.round(4).to_string())
     if "full" not in table.index:
         return
+    if (runs / "cost.csv").exists():
+        bang_for_buck(table, runs)
     deltas = table - table.loc["full"]
     deltas.to_csv(runs / "ablation_deltas.csv")
 

@@ -38,7 +38,9 @@ Usage (on the VM, onnxruntime-gpu installed):
 perch-onnx-for-birdclef-2026). --perch-labels is Perch v2's assets/labels.csv.
 """
 import argparse
+import json
 import re
+import time
 from pathlib import Path
 
 import numpy as np
@@ -224,6 +226,7 @@ def main():
     ap.add_argument("--batch", type=int, default=128, help="Perch windows per GPU batch")
     ap.add_argument("--allow-cpu", action="store_true", help="permit CPU fallback (slow)")
     args = ap.parse_args()
+    t_start = time.time()
     out = args.out; (out / "sc_wave").mkdir(parents=True, exist_ok=True)
 
     primary = pd.read_csv(args.comp_dir / "sample_submission.csv").columns[1:].tolist()
@@ -319,6 +322,9 @@ def main():
         np.save(out / f"sc_targets_fold{k}.npy", tgt.astype(np.float16))
     win.to_parquet(out / "sc_windows.parquet", index=False)
     save_arrays(out, "sc", E, S if keep_spatial else None)
+    (out / "pseudo_label_cost.json").write_text(json.dumps(
+        {"wall_seconds": time.time() - t_start, "gpu_hours": (time.time() - t_start) / 3600,
+         "soundscape_windows": int(len(win))}, indent=1))
     print(f"Done: {len(win)} soundscape windows ({lab.sum()} labelled) -> {out}")
 
 
