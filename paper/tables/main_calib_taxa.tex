@@ -1,0 +1,39 @@
+\begin{table}[H]\centering\small
+\caption{Calibration, temporal stability and per-taxon macro ROC-AUC for every variant (ECE, Brier and jitter: lower is better). Best per column in bold.}\label{tab:main_calib}
+\setlength{\tabcolsep}{3.5pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Variant & ECE$\downarrow$ & Brier$\downarrow$ & Jitter$\downarrow$ & AUC Aves & AUC Amph. & AUC Insecta & AUC Mamm. \\
+\midrule
+\multicolumn{8}{l}{\emph{Baselines}} \\
+\texttt{resnet\_baseline} & 0.2256 & 0.1503 & 0.0684 & 0.8064 & 0.8347 & 0.6652 & 0.8245 \\
+\texttt{perch\_attn\_probe} & 0.3564 & 0.2216 & 0.0860 & \textbf{0.8972} & 0.8625 & 0.4908 & 0.8185 \\
+\midrule
+\multicolumn{8}{l}{\emph{Full model}} \\
+\texttt{full} & 0.1836 & 0.0931 & 0.0437 & 0.7509 & 0.8442 & 0.6401 & 0.4516 \\
+\midrule
+\multicolumn{8}{l}{\emph{One-change training ablations}} \\
+\texttt{no\_distill} & 0.2249 & 0.1462 & 0.0620 & 0.7651 & 0.7791 & 0.7045 & 0.4322 \\
+\texttt{distill\_no\_stopgrad} & 0.2501 & 0.1691 & 0.0519 & 0.6709 & 0.7802 & 0.6797 & 0.4890 \\
+\texttt{no\_pseudo\_focal} & 0.2136 & 0.1152 & 0.0407 & 0.6849 & 0.8227 & 0.6512 & 0.6135 \\
+\texttt{no\_pseudo\_sc} & \textbf{0.0032} & \textbf{0.0092} & 0.0027 & 0.8026 & 0.8961 & 0.6673 & \textbf{0.8447} \\
+\texttt{single\_channel\_mel} & 0.2509 & 0.1467 & 0.0397 & 0.7572 & 0.8340 & 0.6382 & 0.6638 \\
+\texttt{mean\_freq\_pool} & 0.1808 & 0.0931 & 0.0454 & 0.7709 & 0.8568 & 0.6548 & 0.7771 \\
+\texttt{mean\_time\_pool} & 0.2183 & 0.1131 & 0.0391 & 0.7201 & 0.7993 & 0.6394 & 0.4956 \\
+\texttt{no\_mixup} & 0.2377 & 0.1246 & 0.0494 & 0.6614 & 0.8192 & 0.6035 & 0.4272 \\
+\texttt{no\_soundscape\_data} & 0.0078 & 0.0128 & 0.0016 & 0.8078 & 0.5871 & 0.6478 & 0.4066 \\
+\texttt{no\_specaug} & 0.2180 & 0.1204 & 0.0403 & 0.7616 & 0.8277 & 0.6090 & 0.6939 \\
+\texttt{no\_rare\_upsample} & 0.2281 & 0.1245 & 0.0441 & 0.7038 & 0.8163 & 0.6136 & 0.5735 \\
+\midrule
+\multicolumn{8}{l}{\emph{Post-hoc variants of \texttt{full} (no retraining)}} \\
+\texttt{head\_clip\_only} & 0.1477 & 0.0733 & 0.0404 & 0.7171 & 0.8367 & 0.6430 & 0.4525 \\
+\texttt{head\_framemax\_only} & 0.2196 & 0.1176 & 0.0505 & 0.7638 & 0.8457 & 0.6349 & 0.4364 \\
+\texttt{full+gauss\_smooth} & 0.1814 & 0.0902 & 0.0124 & 0.7468 & 0.8573 & 0.6485 & 0.4668 \\
+\texttt{full+tax\_smooth} & 0.1836 & 0.0917 & 0.0434 & 0.7450 & \textbf{0.9173} & 0.7217 & 0.4287 \\
+\texttt{full+site\_hour\_prior} & 0.0059 & 0.0102 & 0.0045 & 0.7591 & 0.8383 & 0.6599 & 0.6240 \\
+\texttt{full+all\_posthoc} & 0.0062 & 0.0100 & \textbf{0.0013} & 0.7943 & 0.9139 & \textbf{0.8558} & 0.5662 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}

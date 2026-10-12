@@ -1,0 +1,33 @@
+\begin{table}[H]\centering\small
+\caption{Quality versus cost (\texttt{bang\_for\_buck.csv}), sorted by single-thread CPU time. Post-hoc variants inherit the cost of \texttt{full}. ``Gain/ms'' is the macro-AUC change relative to \texttt{resnet\_baseline} divided by the extra CPU milliseconds (undefined for the baseline itself and for the GPU-only probe). A variant is on the Pareto frontier if no other variant is both cheaper and better on macro ROC-AUC.}
+\label{tab:bang}
+\setlength{\tabcolsep}{3.5pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrrcc}
+\toprule
+Variant & Macro AUC & CPU1 ms & GPU ms & Train GPU-h & Gain/ms & Pareto (CPU) & Pareto (GPU) \\
+\midrule
+\texttt{single\_channel\_mel} & 0.7230 & 80.82 & 0.731 & 0.438 & +0.0121 & \checkmark & \checkmark \\
+\texttt{no\_rare\_upsample} & 0.6896 & 81.29 & 0.785 & 0.315 & +0.0288 &  &  \\
+\texttt{no\_soundscape\_data} & 0.6656 & 81.39 & 0.784 & 0.484 & +0.0407 &  &  \\
+\texttt{mean\_freq\_pool} & 0.7466 & 81.39 & 0.783 & 0.477 & +0.0047 & \checkmark &  \\
+\texttt{no\_distill} & 0.7292 & 81.54 & 0.783 & 0.485 & +0.0134 &  &  \\
+\texttt{no\_mixup} & 0.6630 & 81.55 & 0.784 & 0.320 & +0.0452 &  &  \\
+\texttt{full} & 0.7142 & 81.92 & 0.785 & 0.463 & +0.0250 &  &  \\
+\texttt{head\_clip\_only} & 0.7050 & 81.92 & 0.785 & 0.463 & +0.0304 &  &  \\
+\texttt{full+tax\_smooth} & 0.7632 & 81.92 & 0.785 & 0.463 & $-$0.0035 &  &  \\
+\texttt{full+all\_posthoc} & 0.8407 & 81.92 & 0.785 & 0.463 & $-$0.0487 & \checkmark & \checkmark \\
+\texttt{full+site\_hour\_prior} & 0.7346 & 81.92 & 0.785 & 0.463 & +0.0131 &  &  \\
+\texttt{full+gauss\_smooth} & 0.7206 & 81.92 & 0.785 & 0.463 & +0.0213 &  &  \\
+\texttt{head\_framemax\_only} & 0.7145 & 81.92 & 0.785 & 0.463 & +0.0248 &  &  \\
+\texttt{no\_pseudo\_sc} & 0.7742 & 81.99 & 0.784 & 0.487 & $-$0.0104 &  & \checkmark \\
+\texttt{no\_pseudo\_focal} & 0.7049 & 82.03 & 0.784 & 0.478 & +0.0325 &  &  \\
+\texttt{mean\_time\_pool} & 0.6984 & 82.20 & 0.786 & 0.475 & +0.0411 &  &  \\
+\texttt{no\_specaug} & 0.7135 & 82.38 & 0.783 & 0.328 & +0.0346 &  &  \\
+\texttt{distill\_no\_stopgrad} & 0.6970 & 82.39 & 0.785 & 0.320 & +0.0484 &  &  \\
+\texttt{resnet\_baseline} & 0.7571 & 83.63 & 0.782 & 0.458 & -- &  & \checkmark \\
+\texttt{perch\_attn\_probe} & 0.7109 & -- & 2.569 & 0.156 & -- &  &  \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}

@@ -1,0 +1,24 @@
+\begin{table}[H]\centering\small
+\caption{Fold-local macro ROC-AUC: each fold's selected checkpoint scored only on that fold's non-S22 evaluation windows, versus the pooled out-of-fold score over all 192 windows.}
+\label{tab:foldlocal}
+\begin{tabular}{lrrrrr}
+\toprule
+Variant & Fold 0 & Fold 1 & Fold 2 & Mean of folds & Pooled \\
+\midrule
+\texttt{no\_pseudo\_sc} & 0.9228 & 0.8955 & 0.9412 & 0.9198 & 0.7742 \\
+\texttt{resnet\_baseline} & 0.8808 & 0.8606 & 0.8781 & 0.8732 & 0.7571 \\
+\texttt{mean\_freq\_pool} & 0.8838 & 0.8780 & 0.8777 & 0.8799 & 0.7466 \\
+\texttt{no\_distill} & 0.8233 & 0.8950 & 0.8461 & 0.8548 & 0.7292 \\
+\texttt{single\_channel\_mel} & 0.8852 & 0.8802 & 0.8475 & 0.8710 & 0.7230 \\
+\texttt{full} & 0.8177 & 0.8385 & 0.8196 & 0.8253 & 0.7142 \\
+\texttt{no\_specaug} & 0.8016 & 0.8852 & 0.8582 & 0.8483 & 0.7135 \\
+\texttt{perch\_attn\_probe} & 0.7495 & 0.7015 & 0.8207 & 0.7572 & 0.7109 \\
+\texttt{no\_pseudo\_focal} & 0.8004 & 0.8645 & 0.8483 & 0.8378 & 0.7049 \\
+\texttt{mean\_time\_pool} & 0.8021 & 0.8564 & 0.8780 & 0.8455 & 0.6984 \\
+\texttt{distill\_no\_stopgrad} & 0.7228 & 0.8508 & 0.7943 & 0.7893 & 0.6970 \\
+\texttt{no\_rare\_upsample} & 0.7902 & 0.8816 & 0.8567 & 0.8428 & 0.6896 \\
+\texttt{no\_soundscape\_data} & 0.7436 & 0.5387 & 0.7241 & 0.6688 & 0.6656 \\
+\texttt{no\_mixup} & 0.7384 & 0.8210 & 0.7998 & 0.7864 & 0.6630 \\
+\bottomrule
+\end{tabular}
+\end{table}

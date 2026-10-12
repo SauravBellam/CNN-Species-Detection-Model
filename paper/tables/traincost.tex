@@ -1,0 +1,26 @@
+\begin{table}[H]\centering\small
+\caption{Training cost per variant (3 folds). Three runs shared one L4 GPU at a time, so GPU-hours are estimated as wall time / 3, and epoch times depend on what the other two lanes were running.}
+\label{tab:traincost}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrr}
+\toprule
+Variant & Wall (s) & GPU-h (est.) & Mean epoch (s) & Peak GPU mem (GB) & Epochs \\
+\midrule
+\texttt{resnet\_baseline} & 4942 & 0.458 & 163.9 & 2.187 & 10 \\
+\texttt{perch\_attn\_probe} & 1689 & 0.156 & -- & 0.143 & 30 \\
+\texttt{full} & 5005 & 0.463 & 166.0 & 2.199 & 10 \\
+\texttt{no\_distill} & 5241 & 0.485 & 173.9 & 2.190 & 10 \\
+\texttt{distill\_no\_stopgrad} & 3455 & 0.320 & 114.4 & 2.196 & 10 \\
+\texttt{no\_pseudo\_focal} & 5165 & 0.478 & 171.3 & 2.199 & 10 \\
+\texttt{no\_pseudo\_sc} & 5262 & 0.487 & 174.5 & 2.196 & 10 \\
+\texttt{single\_channel\_mel} & 4735 & 0.438 & 157.0 & 2.133 & 10 \\
+\texttt{mean\_freq\_pool} & 5147 & 0.477 & 170.7 & 2.197 & 10 \\
+\texttt{mean\_time\_pool} & 5129 & 0.475 & 170.1 & 2.198 & 10 \\
+\texttt{no\_mixup} & 3451 & 0.320 & 114.3 & 2.199 & 10 \\
+\texttt{no\_soundscape\_data} & 5224 & 0.484 & 173.3 & 2.199 & 10 \\
+\texttt{no\_specaug} & 3541 & 0.328 & 117.3 & 2.199 & 10 \\
+\texttt{no\_rare\_upsample} & 3405 & 0.315 & 112.8 & 2.199 & 10 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
